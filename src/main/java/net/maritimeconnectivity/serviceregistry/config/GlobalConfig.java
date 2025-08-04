@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Maritime Connectivity Platform Consortium
+ * Copyright (c) 2025 Maritime Connectivity Platform Consortium
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@ import net.maritimeconnectivity.serviceregistry.models.domain.Instance;
 import net.maritimeconnectivity.serviceregistry.models.domain.Xml;
 import net.maritimeconnectivity.serviceregistry.models.dto.secom.SearchObjectResultWithCert;
 import net.maritimeconnectivity.serviceregistry.utils.GeometryJSONConverter;
-import org.apache.commons.lang3.StringUtils;
 import org.grad.secom.core.models.SearchObjectResult;
 import org.grad.secom.core.models.enums.SECOM_DataProductType;
+import org.iala_aism.g1128.v1_7.serviceinstanceschema.ServiceStatus;
 import org.locationtech.jts.geom.Geometry;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.spi.MappingContext;
@@ -115,6 +115,13 @@ public class GlobalConfig {
                                     .orElse(SECOM_DataProductType.OTHER)
                              )
                             .map(Instance::getDataProductType, SearchObjectResult::setDataProductType);
+                    mapper.using(ctx -> Optional.of(ctx)
+                                    .map(MappingContext::getSource)
+                                    .map(Instance.class::cast)
+                                    .map(Instance::getStatus)
+                                    .map(ServiceStatus::name)
+                                    .orElse(""))
+                            .map(src -> src, SearchObjectResultWithCert::setStatus);
                 });
         // ================================================================== //
 

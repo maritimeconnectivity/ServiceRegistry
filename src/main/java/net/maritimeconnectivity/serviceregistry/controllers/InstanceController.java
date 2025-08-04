@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Maritime Connectivity Platform Consortium
+ * Copyright (c) 2025 Maritime Connectivity Platform Consortium
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,15 +22,17 @@ import net.maritimeconnectivity.serviceregistry.components.DomainDtoMapper;
 import net.maritimeconnectivity.serviceregistry.exceptions.GeometryParseException;
 import net.maritimeconnectivity.serviceregistry.exceptions.XMLValidationException;
 import net.maritimeconnectivity.serviceregistry.models.domain.Instance;
+import net.maritimeconnectivity.serviceregistry.models.domain.LedgerRequest;
 import net.maritimeconnectivity.serviceregistry.models.domain.enums.LedgerRequestStatus;
 import net.maritimeconnectivity.serviceregistry.models.dto.InstanceDtDto;
 import net.maritimeconnectivity.serviceregistry.models.dto.InstanceDto;
+import net.maritimeconnectivity.serviceregistry.models.dto.LedgerRequestDto;
 import net.maritimeconnectivity.serviceregistry.models.dto.datatables.DtPage;
 import net.maritimeconnectivity.serviceregistry.models.dto.datatables.DtPagingRequest;
 import net.maritimeconnectivity.serviceregistry.services.InstanceService;
 import net.maritimeconnectivity.serviceregistry.utils.HeaderUtil;
 import net.maritimeconnectivity.serviceregistry.utils.PaginationUtil;
-import org.iala_aism.g1128.v1_3.servicespecificationschema.ServiceStatus;
+import org.iala_aism.g1128.v1_7.serviceinstanceschema.ServiceStatus;
 import org.modelmapper.PropertyMap;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +47,10 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * REST controller for managing Instance.
@@ -86,26 +91,35 @@ public class InstanceController {
      */
     @PostConstruct
     void setup() {
-        this.instanceDtoToDomainMapper.getModelMapper().addMappings(new PropertyMap<InstanceDto, Instance>() {
-            @Override
-            protected void configure() {
-                map(source.getLedgerRequestId()).setLedgerRequest(null);
-            }
-        });
-        this.instanceDomainToDtoMapper.getModelMapper().addMappings(new PropertyMap<Instance, InstanceDto>() {
-            @Override
-            protected void configure() {
-                map(source.getImplementsDesign()).setImplementsServiceDesign(null);
-                map(source.getImplementsDesignVersion()).setImplementsServiceDesignVersion(null);
-            }
-        });
-        this.instanceDomainToDtDtoMapper.getModelMapper().addMappings(new PropertyMap<Instance, InstanceDtDto>() {
-            @Override
-            protected void configure() {
-                map(source.getImplementsDesign()).setImplementsServiceDesign(null);
-                map(source.getImplementsDesignVersion()).setImplementsServiceDesignVersion(null);
-            }
-        });
+        this.instanceDtoToDomainMapper.getModelMapper()
+                .addMappings(new PropertyMap<InstanceDto, Instance>() {
+                    @Override
+                    protected void configure() {
+                        map(source.getLedgerRequestId()).setLedgerRequest(null);
+                    }
+                })
+                .addMappings(mapper -> {
+                    mapper.using(ctx -> ((InstanceDto)ctx.getSource()).getImplementsServiceDesigns())
+                            .map(src -> src, Instance::setDesigns);
+                    mapper.using(ctx -> ((InstanceDto)ctx.getSource()).getDesignsServiceSpecifications())
+                            .map(src -> src, Instance::setSpecifications);
+                });
+        this.instanceDomainToDtoMapper.getModelMapper()
+                .createTypeMap(Instance.class, InstanceDto.class)
+                .addMappings(mapper -> {
+                    mapper.using(ctx -> ((Instance)ctx.getSource()).getDesigns())
+                            .map(src -> src, InstanceDto::setImplementsServiceDesigns);
+                    mapper.using(ctx -> ((Instance)ctx.getSource()).getSpecifications())
+                            .map(src -> src, InstanceDto::setDesignsServiceSpecifications);
+                });
+        this.instanceDomainToDtDtoMapper.getModelMapper()
+                .createTypeMap(Instance.class, InstanceDtDto.class)
+                .addMappings(mapper -> {
+                    mapper.using(ctx -> ((Instance)ctx.getSource()).getDesigns())
+                            .map(src -> src, InstanceDtDto::setImplementsServiceDesigns);
+                    mapper.using(ctx -> ((Instance)ctx.getSource()).getSpecifications())
+                            .map(src -> src, InstanceDtDto::setDesignsServiceSpecifications);
+                });
     }
 
     /**

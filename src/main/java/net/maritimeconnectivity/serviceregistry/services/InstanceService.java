@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Maritime Connectivity Platform Consortium
+ * Copyright (c) 2025 Maritime Connectivity Platform Consortium
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,10 @@ package net.maritimeconnectivity.serviceregistry.services;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
+import net.maritimeconnectivity.eNav.utils.G1128Utils;
 import net.maritimeconnectivity.serviceregistry.exceptions.*;
 import net.maritimeconnectivity.serviceregistry.models.domain.*;
+import net.maritimeconnectivity.serviceregistry.models.domain.enums.G1128Schemas;
 import net.maritimeconnectivity.serviceregistry.models.domain.enums.LedgerRequestStatus;
 import net.maritimeconnectivity.serviceregistry.models.dto.datatables.DtPagingRequest;
 import net.maritimeconnectivity.serviceregistry.repos.InstanceRepo;
@@ -46,11 +48,7 @@ import org.hibernate.search.engine.search.query.SearchQuery;
 import org.hibernate.search.mapper.orm.Search;
 import org.hibernate.search.mapper.orm.scope.SearchScope;
 import org.hibernate.search.mapper.orm.session.SearchSession;
-import org.iala_aism.g1128.v1_3.serviceinstanceschema.CoverageArea;
-import org.iala_aism.g1128.v1_3.serviceinstanceschema.CoverageInfo;
-import org.iala_aism.g1128.v1_3.serviceinstanceschema.ServiceDesignReference;
-import org.iala_aism.g1128.v1_3.serviceinstanceschema.ServiceInstance;
-import org.iala_aism.g1128.v1_3.servicespecificationschema.ServiceStatus;
+import org.iala_aism.g1128.v1_7.serviceinstanceschema.*;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.util.GeometryCombiner;
@@ -75,7 +73,6 @@ import jakarta.xml.bind.JAXBException;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Service Implementation for managing Instance.
@@ -151,7 +148,7 @@ public class InstanceService {
             "endpointUri",
             "mmsi",
             "imo",
-            "serviceType",
+            "serviceTypes",
             "dataProductType",
             "designId",
             "specificationId"
@@ -162,8 +159,7 @@ public class InstanceService {
             "lastUpdatedAt",
             "comment",
             "instanceId",
-            "keywords",
-            "serviceType"
+            "keywords"
     };
 
     /**
@@ -404,7 +400,7 @@ public class InstanceService {
         }
 
         try {
-            XmlUtil.validateXml(instance.getInstanceAsXml().getContent(), G1128Utils.SOURCES_LIST);
+            XmlUtil.validateXml(instance.getInstanceAsXml().getContent(), Collections.singletonList(G1128Schemas.INSTANCE.getPath()));
         } catch (SAXException e) {
             throw new XMLValidationException("Service Instance XML is not valid.", e);
         } catch (IOException e) {
@@ -499,7 +495,7 @@ public class InstanceService {
         instance.setEndpointUri(serviceInstance.getEndpoint());
         instance.setMmsi(serviceInstance.getMMSI());
         instance.setImo(serviceInstance.getIMO());
-        instance.setServiceType(serviceInstance.getServiceType());
+        instance.setServiceTypes(serviceInstance.getServiceTypes());
         instance.setUnlocode(Optional.of(serviceInstance)
                 .map(ServiceInstance::getCoversAreas)
                 .map(CoverageInfo::getCoversAreasAndUnLoCodes)
@@ -509,17 +505,25 @@ public class InstanceService {
                 .map(String.class::cast)
                 .collect(Collectors.toList()));
         instance.setDesigns(Optional.of(serviceInstance)
-                .map(ServiceInstance::getImplementsServiceDesign)
+                .map(ServiceInstance::getImplementsServiceDesigns)
+                .map(ServiceInstance.ImplementsServiceDesigns::getImplementsServiceDesigns)
                 .stream()
-                .collect(Collectors.toMap(ServiceDesignReference::getId, ServiceDesignReference::getVersion)));
+                .flatMap(List::stream)
+                .collect(Collectors.toMap(SpecReference::getId, SpecReference::getVersion)));
+        instance.setSpecifications(Optional.of(serviceInstance)
+                .map(ServiceInstance::getDesignsServiceSpecifications)
+                .map(ServiceInstance.DesignsServiceSpecifications::getDesignsServiceSpecifications)
+                .stream()
+                .flatMap(List::stream)
+                .collect(Collectors.toMap(SpecReference::getId, SpecReference::getVersion)));
     }
 
     /**
      * Parse instance geometry from the xml payload for search/filtering
      *
      * @param instance      the instance to parse
-     * @return an instance with its attributes set
-     * @throws Exception if the XML is invalid or attributes not present
+     * @throws JAXBException if the XML is invalid or attributes not present
+     * @throws ParseException if the XML parsing fails for any reason
      */
     protected void parseInstanceGeometryFromXML(Instance instance) throws JAXBException, ParseException {
         log.debug("Parsing XML: " + instance.getInstanceAsXml().getContent());
