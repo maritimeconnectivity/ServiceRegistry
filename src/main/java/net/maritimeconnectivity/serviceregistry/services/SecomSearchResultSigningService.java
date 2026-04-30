@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import net.maritimeconnectivity.serviceregistry.components.SecomV2SignatureProviderImpl;
 import net.maritimeconnectivity.serviceregistry.components.SecomV2SigningIdentityProvider;
 import net.maritimeconnectivity.serviceregistry.components.SecomV2TrustStoreProviderImpl;
+import net.maritimeconnectivity.serviceregistry.models.dto.gmsp.EnvelopeUploadSearchResultObject;
+import net.maritimeconnectivity.serviceregistry.models.dto.gmsp.UploadSearchResultObject;
 import org.grad.secomv2.core.models.EnvelopeSearchResultObject;
 import org.grad.secomv2.core.models.SearchResult;
 import org.springframework.stereotype.Service;
@@ -71,6 +73,39 @@ public class SecomSearchResultSigningService {
         );
 
         return searchResult;
+    }
+
+    public UploadSearchResultObject signUploadSearchResult(EnvelopeUploadSearchResultObject envelope) {
+
+        envelope.setEnvelopeSignatureCertificate(getSigningCertificateArray());
+        envelope.setEnvelopeRootCertificateThumbprint(this.getRootThumbprint());
+        envelope.setEnvelopeSignatureTime(Instant.now());
+
+        byte[] payload = envelope.getCsvString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+        byte[] signature = secomV2SignatureProvider.generateSignature(
+                null,
+                secomV2SignatureProvider.getSignatureAlgorithm(),
+                payload
+        );
+
+        UploadSearchResultObject uploadResult = new UploadSearchResultObject();
+        uploadResult.setEnvelope(envelope);
+        if (signature == null) {
+            throw new IllegalStateException("Failed to generate envelope signature");
+        }
+
+        uploadResult.setEnvelopeSignature(this.hexFormatter.formatHex(signature));
+
+        //check validation of signature
+        boolean valid = secomV2SignatureProvider.validateSignature(
+                envelope.getEnvelopeSignatureCertificate(),
+                secomV2SignatureProvider.getSignatureAlgorithm(),
+                signature,
+                payload
+        );
+
+        return uploadResult;
     }
 
 

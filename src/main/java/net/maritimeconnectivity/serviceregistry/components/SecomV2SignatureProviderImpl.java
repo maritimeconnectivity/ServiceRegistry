@@ -56,6 +56,8 @@ public class SecomV2SignatureProviderImpl implements SecomSignatureProvider {
                                      byte[] signature,
                                      byte[] content) {
 
+        log.debug("RUN VALIDATION\n");
+
         for (String signatureCertificate : signatureCertificates) {
             try {
                 Signature sign = Signature.getInstance(algorithm.getValue());

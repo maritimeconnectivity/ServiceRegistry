@@ -3,6 +3,8 @@ package net.maritimeconnectivity.serviceregistry.controllers.g1191.v2;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import lombok.extern.slf4j.Slf4j;
+import net.maritimeconnectivity.serviceregistry.models.dto.gmsp.EnvelopeUploadSearchResultObject;
+import net.maritimeconnectivity.serviceregistry.models.dto.gmsp.UploadSearchResultObject;
 import net.maritimeconnectivity.serviceregistry.services.SearchConsolidationService;
 import org.grad.secomv2.core.base.SecomConstants;
 import org.grad.secomv2.core.models.ServiceInstanceObject;
@@ -40,16 +42,23 @@ public class UploadResultsController {
      * request that has been propagated to the MSR over the GMSP.
      *
      * @param transactionId The transaction ID associated with the global search
-     * @param searchResults The search filter object
+     * @param usrObj        The UploadSearchResultObject containing the results
      * @return Http status 200 OK if the results were successfully uploaded
      * @implNote Results with invalid signature in the envelope will be rejected by the middleware
      */
 
     @PostMapping("/uploadResults/{transactionId}")
     public ResponseEntity<Void>  uploadResults(
-        @PathVariable("transactionId") String transactionId,
-        @RequestBody List<ServiceInstanceObject> searchResults)
+            @PathVariable("transactionId") String transactionId,
+            @RequestBody UploadSearchResultObject usrObj)
     {
+
+        //Call to validate signature
+        EnvelopeUploadSearchResultObject envelope = usrObj.getEnvelope();
+
+
+        List<ServiceInstanceObject> searchResults = envelope.getServiceInstance();
+
         log.debug("UPLOADCONTROLLER: Received {} search results for transactionId: {}", searchResults.size(), transactionId);
 
 
