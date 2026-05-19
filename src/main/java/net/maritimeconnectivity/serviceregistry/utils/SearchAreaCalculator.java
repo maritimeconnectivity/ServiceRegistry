@@ -42,7 +42,7 @@ public class SearchAreaCalculator {
         return subjects;
 
     }
-
+  
 
     /**
      * This method calculates the subject based on the geometry provided in the search parameters.

@@ -224,6 +224,11 @@ public class InstanceService {
     }
 
     @Transactional
+    public Instance saveFromMigration(Instance instance) {
+        return this.instanceRepo.save(instance);
+    }
+
+    @Transactional
     public void updateInstanceFromDto(Long id, @Valid UpdateServiceDto updateServiceDto) throws DataNotFoundException, XMLValidationException, GeometryParseException, JsonProcessingException, ParseException {
         log.debug("Request to update Instance from DTO: {}", updateServiceDto);
 
