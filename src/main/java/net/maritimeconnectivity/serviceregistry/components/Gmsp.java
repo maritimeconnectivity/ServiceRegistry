@@ -26,6 +26,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -240,7 +242,11 @@ public class Gmsp {
         log.debug("Found {} search results for local database", searchObjectResults.size());
 
         try {
-            uploadSecomClient.uploadResults(searchObjectResults);
+            HttpStatusCode status = uploadSecomClient.uploadResults(searchObjectResults);
+            if (status != HttpStatus.OK) {
+                log.error("Error uploading results via SECOM Upload interface, CODE: {}", status);
+            }
+
         } catch (WebClientResponseException e){
             log.error("Error uploading results via SECOM Upload interface, CODE:", e);
             return;

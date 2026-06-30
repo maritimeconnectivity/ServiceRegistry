@@ -45,7 +45,7 @@ public class UploadResultsClient extends SecomClient {
                 .post()
                 .uri("")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(searchResults)
+                .bodyValue(uploadResultsObject)
                 .exchangeToMono(ClientResponse::toBodilessEntity)
                 .block();
 
