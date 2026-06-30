@@ -16,6 +16,8 @@
 
 package net.maritimeconnectivity.serviceregistry.models.domain;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.grad.secomv2.core.models.AbstractEnvelope;
 import org.grad.secomv2.core.models.ServiceInstanceObject;
 
@@ -30,6 +32,8 @@ public class EnvelopeUploadSearchResultObject extends AbstractEnvelope {
 
 
     // Class Variables
+    @NotNull
+    @Valid
     private List<ServiceInstanceObject> serviceInstance;
 
     /**

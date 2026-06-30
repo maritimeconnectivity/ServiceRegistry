@@ -1,5 +1,6 @@
 package net.maritimeconnectivity.serviceregistry.controllers.g1191.v2;
 
+import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import lombok.extern.slf4j.Slf4j;
@@ -47,40 +48,32 @@ public class UploadResultsController {
      */
 
     @PostMapping("/uploadResults/{transactionId}")
-    public ResponseEntity<Void>  uploadResults(
-        @PathVariable("transactionId") String transactionId,
-        @RequestBody UploadSearchResultObject uploadResult)  {
+    public ResponseEntity<Void> uploadResults(
+            @PathVariable String transactionId,
+            @Valid @RequestBody UploadSearchResultObject uploadResult) {
+        if (uploadResult.getEnvelope() == null) {
+            return ResponseEntity.badRequest().build();
+        }
 
-        List<ServiceInstanceObject> searchResults = uploadResult.getEnvelope().getServiceInstance();
+        List<ServiceInstanceObject> searchResults =
+                uploadResult.getEnvelope().getServiceInstance();
+
+        if (searchResults == null || searchResults.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
 
         log.debug("UPLOADCONTROLLER: Received {} search results for transactionId: {}", searchResults.size(), transactionId);
 
 
         //Check that xactId exists
-        if (transactionId == null || !searchConsolidationService.entryExistsForTransaction(transactionId)) {
-            return ResponseEntity.badRequest().build();
+        if (!searchConsolidationService.entryExistsForTransaction(transactionId)) {
+            return ResponseEntity.notFound().build();
         }
 
         //TODO
         // For any request where the MRN of the sender does not conform to the MSR MRN defined in G1183 (i.e. does not
         // begin with urn:mrn:mcp:msr ) a HTTP response with status code 400 must be returned.
 
-        if (searchResults.isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
-
-
-
-        for (ServiceInstanceObject result : searchResults) {
-            log.debug("Service name: {}", result.getName());
-
-            if (result.getSourceMSRs() != null) {
-                for (String source : result.getSourceMSRs()) {
-                    log.debug("Source MSR {}", source);
-                }
-            }
-
-        }
 
         //Validate the results
 
@@ -88,8 +81,7 @@ public class UploadResultsController {
         
 
         // Consolidate results based on transactionId cast to searchObjectResult
-        List<ServiceInstanceObject> results = searchResults.stream().map(r -> (ServiceInstanceObject) r).toList();
-        searchConsolidationService.addResults(transactionId, results);
+        searchConsolidationService.addResults(transactionId, searchResults);
         return ResponseEntity.ok().build();
     }
 
