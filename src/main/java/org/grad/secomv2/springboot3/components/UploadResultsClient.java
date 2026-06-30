@@ -3,10 +3,13 @@
 package org.grad.secomv2.springboot3.components;
 
 import lombok.extern.slf4j.Slf4j;
+import net.maritimeconnectivity.serviceregistry.models.domain.EnvelopeUploadSearchResultObject;
+import net.maritimeconnectivity.serviceregistry.models.domain.UploadSearchResultObject;
 import org.grad.secomv2.core.models.ServiceInstanceObject;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import java.io.IOException;
 import java.net.URL;
@@ -27,12 +30,23 @@ public class UploadResultsClient extends SecomClient {
 
     //
     public HttpStatusCode uploadResults(List<ServiceInstanceObject> searchResults) {
+        //Wrap results in object
+
+        UploadSearchResultObject uploadResultsObject = new UploadSearchResultObject();
+        EnvelopeUploadSearchResultObject envelopeUploadSearchResultObject = new EnvelopeUploadSearchResultObject();
+        envelopeUploadSearchResultObject.setServiceInstance(searchResults);
+        envelopeUploadSearchResultObject.setEnvelopeSignatureCertificate(new String[]{});
+
+
+        uploadResultsObject.setEnvelope(envelopeUploadSearchResultObject);
+        uploadResultsObject.setEnvelopeSignature("TEST_SIGNATURE");
+
         ResponseEntity<Void> entity = this.secomClient
                 .post()
                 .uri("")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(searchResults)
-                .exchangeToMono(response -> response.toBodilessEntity())
+                .exchangeToMono(ClientResponse::toBodilessEntity)
                 .block();
 
         assert entity != null;
