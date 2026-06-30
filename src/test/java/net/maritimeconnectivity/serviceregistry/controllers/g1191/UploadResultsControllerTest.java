@@ -1,12 +1,13 @@
 package net.maritimeconnectivity.serviceregistry.controllers.g1191;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import net.maritimeconnectivity.serviceregistry.controllers.InstanceController;
 import net.maritimeconnectivity.serviceregistry.controllers.advices.MSRBaseExceptionResolver;
 import net.maritimeconnectivity.serviceregistry.controllers.g1191.v2.UploadResultsController;
-import net.maritimeconnectivity.serviceregistry.exceptions.InvalidRequestException;
+import net.maritimeconnectivity.serviceregistry.models.domain.EnvelopeUploadSearchResultObject;
+import net.maritimeconnectivity.serviceregistry.models.domain.UploadSearchResultObject;
 import net.maritimeconnectivity.serviceregistry.models.dto.secom.v2.SearchObjectResultWithCert;
 import net.maritimeconnectivity.serviceregistry.services.SearchConsolidationService;
+import org.grad.secomv2.core.models.ServiceInstanceObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -29,7 +30,6 @@ import java.util.stream.Stream;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -49,18 +49,28 @@ public class UploadResultsControllerTest {
 
     // Test variables
     private String validTransactionId;
-    private List<SearchObjectResultWithCert> results;
+    private List<ServiceInstanceObject> results;
+
+    private UploadSearchResultObject uploadSearchResultObject;
 
 
     @BeforeEach
     void setUp() {
         this.validTransactionId = "validTransactionId";
 
-        this.results = new ArrayList<>();
-        SearchObjectResultWithCert result1 = new SearchObjectResultWithCert();
+        this.results = new ArrayList<ServiceInstanceObject>();
+        ServiceInstanceObject result1 = new ServiceInstanceObject();
         result1.setInstanceId("testInstanceId");
         result1.setName("A test service instance");
         this.results.add(result1);
+
+        EnvelopeUploadSearchResultObject envelopeUploadSearchResultObject = new EnvelopeUploadSearchResultObject();
+        envelopeUploadSearchResultObject.setServiceInstance(results);
+
+        this.uploadSearchResultObject = new UploadSearchResultObject();
+        this.uploadSearchResultObject.setEnvelope(envelopeUploadSearchResultObject);
+        this.uploadSearchResultObject.setEnvelopeSignature("TEST_SIGNATURE");
+
     }
 
 
@@ -85,7 +95,7 @@ public class UploadResultsControllerTest {
         mockMvc.perform(
                         post("/api/g1191/v2/uploadResults/{transactionId}", tx)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(results))
+                                .content(objectMapper.writeValueAsString(uploadSearchResultObject))
                 )
                 .andExpect(status().is(expectedStatus));
 
@@ -100,13 +110,11 @@ public class UploadResultsControllerTest {
     @Test
     void testUploadEmptyResultsToValidTransactionId() throws Exception {
 
-        //Build payload
-        List<SearchObjectResultWithCert> searchResults = new ArrayList<>();
 
         //Act
         MvcResult mvcResult = this.mockMvc.perform(post("/api/g1191/v2/uploadResults/{transactionId}", this.validTransactionId)
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .content(this.objectMapper.writeValueAsString(searchResults)))
+                .content(this.objectMapper.writeValueAsString(uploadSearchResultObject)))
                 .andExpect(status().isBadRequest())
                 .andReturn();
 
