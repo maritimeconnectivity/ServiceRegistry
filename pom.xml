@@ -249,12 +249,12 @@
 		<!-- SECOM v2.0 -->
 		<dependency>
 			<groupId>org.grad.secom</groupId>
-			<artifactId>secom-v2-core-jakarta</artifactId>
+			<artifactId>secom-v2-core-springboot</artifactId>
 			<version>${secomv2lib-version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.grad.secom</groupId>
-			<artifactId>secom-v2-springboot3</artifactId>
+			<artifactId>secom-v2-springboot4</artifactId>
 			<version>${secomv2lib-version}</version>
 		</dependency>
 
