@@ -87,8 +87,8 @@ public class InstanceSearchQueryBuilder {
             }
 
             // Handle the service Type filter
-            if (Strings.isNotBlank(searchFilterObject.getQuery().getServiceType())) {
-                query = this.addToQuery(query, "serviceType", searchFilterObject.getQuery().getServiceType(), BooleanOperator.AND);
+            if (Strings.isNotBlank(String.valueOf(searchFilterObject.getQuery().getServiceType()))) {
+                query = this.addToQuery(query, "serviceType", String.valueOf(searchFilterObject.getQuery().getServiceType()), BooleanOperator.AND);
             }
 
             // Handle the UN/LOCODE filter

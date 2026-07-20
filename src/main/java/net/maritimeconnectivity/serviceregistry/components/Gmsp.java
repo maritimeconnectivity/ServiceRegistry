@@ -19,8 +19,8 @@ import net.maritimeconnectivity.serviceregistry.services.SearchConsolidationServ
 import net.maritimeconnectivity.serviceregistry.utils.SearchAreaCalculator;
 import org.grad.secomv2.core.models.SearchFilterObject;
 import org.grad.secomv2.core.models.ServiceInstanceObject;
-import org.grad.secomv2.springboot3.components.SecomConfigProperties;
-import org.grad.secomv2.springboot3.components.UploadResultsClient;
+import org.grad.secomv2.springboot4.components.SecomConfigProperties;
+import org.grad.secomv2.springboot4.components.UploadResultsClient;
 import org.locationtech.jts.geom.Geometry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

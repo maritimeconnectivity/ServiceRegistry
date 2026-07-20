@@ -1,6 +1,6 @@
 
 //This is just a nasty namespace hack to access the WebClient secomClient in the derived class
-package org.grad.secomv2.springboot3.components;
+package org.grad.secomv2.springboot4.components;
 
 import lombok.extern.slf4j.Slf4j;
 import net.maritimeconnectivity.serviceregistry.models.domain.EnvelopeUploadSearchResultObject;

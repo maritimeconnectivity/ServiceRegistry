@@ -36,24 +36,22 @@ import net.maritimeconnectivity.serviceregistry.services.SecomSearchResultSignin
 import net.maritimeconnectivity.serviceregistry.utils.CertificateParsingUtil;
 import net.maritimeconnectivity.serviceregistry.utils.GeometryJSONConverter;
 import net.maritimeconnectivity.serviceregistry.utils.WKTUtil;
-import org.apache.commons.lang3.EnumUtils;
 import org.apache.logging.log4j.util.Strings;
 import org.grad.secomv2.core.exceptions.SecomNotFoundException;
 import org.grad.secomv2.core.exceptions.SecomValidationException;
 import org.grad.secomv2.core.interfaces.SearchServiceServiceInterface;
 import org.grad.secomv2.core.models.*;
-import org.iala_aism.g1128.v1_7.serviceinstanceschema.ServiceStatus;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 
-import java.time.Instant;
 import java.util.*;
 
 /**
@@ -119,7 +117,7 @@ public class SecomV2SearchServiceController implements SearchServiceServiceInter
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public SearchResult searchService(@Valid SearchFilterObject searchFilterObject) {
+    public ResponseEntity<SearchResult> searchService(@Valid SearchFilterObject searchFilterObject) {
         log.debug("REST request to search for a page of Instances for search filter object: {}", searchFilterObject);
 
         EnvelopeSearchFilterObject envelopeSearchFilterObject = searchFilterObject.getEnvelope();
@@ -143,7 +141,7 @@ public class SecomV2SearchServiceController implements SearchServiceServiceInter
         String unparsedGeom = envelopeSearchFilterObject.getGeometry();
 
         //Reject when no query or geometry is provided
-        if ((unparsedGeom == null || unparsedGeom.isEmpty()) && (query == null || query.isEmpty())) {
+        if ((unparsedGeom == null || unparsedGeom.isEmpty()) && (query == null)) {
             throw new SecomValidationException("No valid search parameters provided. Please provide either a geometry or a query.");
         }
 
@@ -285,7 +283,7 @@ public class SecomV2SearchServiceController implements SearchServiceServiceInter
         SearchResult searchResult = secomSearchResultSigningService.signSearchResult(envelope);
 
         // And return
-        return searchResult;
+        return ResponseEntity.ok(searchResult);
     }
 
     /**
