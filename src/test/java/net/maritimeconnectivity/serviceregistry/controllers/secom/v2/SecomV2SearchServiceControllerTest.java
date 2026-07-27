@@ -101,7 +101,7 @@ class SecomV2SearchServiceControllerTest {
     private SecomV2SignatureProviderImpl secomV2SignatureProvider;
 
     @MockitoBean
-    private org.grad.secomv2.core.components.SecomSignatureFilter secomSignatureFilter;
+    private org.grad.secomv2.core.components.SecomSignatureAdvice secomSignatureFilter;
 
     @MockitoBean
     private SecomSearchResultSigningService secomSearchResultSigningService;

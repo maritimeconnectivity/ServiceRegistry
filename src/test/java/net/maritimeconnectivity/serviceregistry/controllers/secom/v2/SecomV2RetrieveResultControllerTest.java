@@ -51,7 +51,7 @@ public class SecomV2RetrieveResultControllerTest {
     private SecomV2TrustStoreProviderImpl secomV2TrustStoreProvider;
 
     @MockitoBean
-    private org.grad.secomv2.core.components.SecomSignatureFilter secomSignatureFilter;
+    private org.grad.secomv2.core.components.SecomSignatureAdvice secomSignatureFilter;
 
     @MockitoBean
     private SecomSearchResultSigningService secomSearchResultSigningService;
