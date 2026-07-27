@@ -37,6 +37,7 @@ import net.maritimeconnectivity.serviceregistry.utils.CertificateParsingUtil;
 import net.maritimeconnectivity.serviceregistry.utils.GeometryJSONConverter;
 import net.maritimeconnectivity.serviceregistry.utils.WKTUtil;
 import org.apache.logging.log4j.util.Strings;
+import org.grad.secomv2.core.base.SecomConstants;
 import org.grad.secomv2.core.exceptions.SecomNotFoundException;
 import org.grad.secomv2.core.exceptions.SecomValidationException;
 import org.grad.secomv2.core.interfaces.SearchServiceServiceInterface;
@@ -50,6 +51,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 
 import java.util.*;
@@ -59,10 +63,10 @@ import java.util.*;
  *
  * @author Nikolaos Vastardis (email: Nikolaos.Vastardis@gla-rad.org)
  */
-@Component
-@Path("/")
-@Validated
+@RestController
 @Slf4j
+@Validated
+@RequestMapping("/api/secom/" + SecomConstants.SECOM_VERSION)
 public class SecomV2SearchServiceController implements SearchServiceServiceInterface {
 
     @Value("${info.msr.forceCertificateCheck:false}")
@@ -113,10 +117,9 @@ public class SecomV2SearchServiceController implements SearchServiceServiceInter
      */
     @Tag(name = "SECOM")
     @Transactional
-    @Path(SEARCH_SERVICE_INTERFACE_PATH)
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @PostMapping(
+            value = "/searchService"
+    )
     public ResponseEntity<SearchResult> searchService(@Valid SearchFilterObject searchFilterObject) {
         log.debug("REST request to search for a page of Instances for search filter object: {}", searchFilterObject);
 
