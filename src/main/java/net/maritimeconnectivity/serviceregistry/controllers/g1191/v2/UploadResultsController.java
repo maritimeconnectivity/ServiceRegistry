@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import lombok.extern.slf4j.Slf4j;
+import net.maritimeconnectivity.serviceregistry.exceptions.InvalidRequestException;
 import net.maritimeconnectivity.serviceregistry.models.domain.UploadSearchResultObject;
 import net.maritimeconnectivity.serviceregistry.services.SearchConsolidationService;
 import org.grad.secomv2.core.base.SecomConstants;
@@ -67,7 +68,7 @@ public class UploadResultsController {
 
         //Check that xactId exists
         if (!searchConsolidationService.entryExistsForTransaction(transactionId)) {
-            return ResponseEntity.notFound().build();
+            throw new InvalidRequestException("No consolidation entry found for transaction id " + transactionId);
         }
 
         //TODO
