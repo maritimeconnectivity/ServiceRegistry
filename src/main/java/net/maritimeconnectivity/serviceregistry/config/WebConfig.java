@@ -22,9 +22,9 @@ import net.maritimeconnectivity.serviceregistry.components.StringToG1128SchemaCo
 import net.maritimeconnectivity.serviceregistry.components.StringToServiceStatusConverter;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration;
-import org.springframework.boot.autoconfigure.web.servlet.DispatcherServletPath;
-import org.springframework.boot.autoconfigure.web.servlet.WebMvcProperties;
+import org.springframework.boot.webmvc.autoconfigure.DispatcherServletAutoConfiguration;
+import org.springframework.boot.webmvc.autoconfigure.DispatcherServletPath;
+import org.springframework.boot.webmvc.autoconfigure.WebMvcProperties;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
