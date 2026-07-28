@@ -1,48 +1,62 @@
 package net.maritimeconnectivity.serviceregistry.controllers.secom.v2;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.MediaType;
 import lombok.extern.slf4j.Slf4j;
 import net.maritimeconnectivity.serviceregistry.services.SearchConsolidationService;
-import net.maritimeconnectivity.serviceregistry.utils.CertificateParsingUtil;
 import org.grad.secomv2.core.exceptions.SecomNotFoundException;
 import org.grad.secomv2.core.exceptions.SecomValidationException;
 import org.grad.secomv2.core.interfaces.RetrieveResultServiceInterface;
 import org.grad.secomv2.core.models.*;
+import org.grad.secomv2.core.utils.SecomPemUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
-@Component
-@Path("/")
-@Slf4j
+/**
+ * The SECOM Retrieve Results Controller.
+ *
+ * @author Nikolaos Vastardis (email: Nikolaos.Vastardis@gla-rad.org)
+ */
+@RestController
 @Validated
+@Slf4j
 public class RetrieveResultController implements RetrieveResultServiceInterface {
 
+    /**
+     * The Search Consolidation Service.
+     */
     @Autowired
     SearchConsolidationService searchConsolidationService;
 
-    @Autowired
-    CertificateParsingUtil certificateParsingUtil;
+    /**
+     * POST /v2/retrieveResult : The purpose of this interface is pull results of a
+     * search transaction for which more results may arrive asynchronously. The search
+     * transaction is identified by the transactionId field in the response to the initial
+     * searchService request.
+     *
+     * @param retrieveResultObject The search filter object
+     * @return the result object
+     */
+    @Tag(name = "SECOM")
+    @Transactional
+    public ResponseEntity<SearchResult> retrieveResult(@Valid @RequestBody RetrieveResultObject retrieveResultObject) {
 
-    @Path(RETRIEVE_RESULT_INTERFACE_PATH)
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    public SearchResult retrieveResult(@Valid RetrieveResultObject retrieveResultObject) {
+        // Get the envelope of the retrieve results object
+        final EnvelopeRetrieveResultObject envelopeSearchResultObject = retrieveResultObject.getEnvelope();
 
-        EnvelopeRetrieveResultObject envelopeSearchResultObject = retrieveResultObject.getEnvelope();
+        // Get the request MRN and Transaction UUID
+        final String consumerMrn = this.getRetrieveResultsEnvelopeMrn(envelopeSearchResultObject);
+        final String transactionIdBody = this.getRetrieveResultsEnvelopeTransactionID(envelopeSearchResultObject);
 
-        // Get the request MRN information
-        final String consumerMrn = certificateParsingUtil.getMrnFromCertificate(
-                envelopeSearchResultObject.getEnvelopeSignatureCertificate());
-
-        // Get the transaction UUID
-        final String transactionIdBody = envelopeSearchResultObject.getTransactionId();
+        // Parse the transaction UUID
         final UUID transactionUUID;
         try{
             transactionUUID = UUID.fromString(transactionIdBody);
@@ -50,9 +64,11 @@ public class RetrieveResultController implements RetrieveResultServiceInterface 
             throw new SecomValidationException(ex.getMessage());
         }
 
-        List<ServiceInstanceObject> services =
-                searchConsolidationService.getResults(transactionUUID.toString(), consumerMrn);
+        // Now try retrieving the results from the consolidation service
+        final List<ServiceInstanceObject> services = this.searchConsolidationService
+                .getResults(transactionUUID.toString(), consumerMrn);
 
+        // Handle no results yet
         if (services == null) {
             log.debug("User tried to retrieve results for unknown transaction {}", transactionUUID);
             throw new SecomNotFoundException("Transaction not found: " + transactionUUID);
@@ -70,8 +86,31 @@ public class RetrieveResultController implements RetrieveResultServiceInterface 
         searchResult.setEnvelope(envelope);
 
         // And return
-        return searchResult;
+        return ResponseEntity.ok(searchResult);
+    }
 
+    /**
+     * A helper function that returns the retrieve results envelope MRN if
+     * available.
+     *
+     * @param envelopeRetrieveResultObject the incoming retrieve results envelope object
+     * @return the transaction MRN
+     */
+    protected String getRetrieveResultsEnvelopeMrn(EnvelopeRetrieveResultObject envelopeRetrieveResultObject) {
+        return SecomPemUtils.getMrnFromEnvelope(envelopeRetrieveResultObject);
+    }
+
+    /**
+     * A helper function that returns the retrieve results envelope transaction
+     * ID, if available.
+     *
+     * @param envelopeRetrieveResultObject the incoming retrieve results envelope object
+     * @return the transaction ID
+     */
+    protected String getRetrieveResultsEnvelopeTransactionID(EnvelopeRetrieveResultObject envelopeRetrieveResultObject) {
+        return Optional.ofNullable(envelopeRetrieveResultObject)
+                .map(EnvelopeRetrieveResultObject::getTransactionId)
+                .orElse(null);
     }
 
 }

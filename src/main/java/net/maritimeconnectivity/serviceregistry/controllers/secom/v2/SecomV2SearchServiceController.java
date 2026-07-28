@@ -16,14 +16,15 @@
 
 package net.maritimeconnectivity.serviceregistry.controllers.secom.v2;
 
-import com.fasterxml.jackson.core.JacksonException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.grad.secomv2.core.utils.SecomPemUtils;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.MediaType;
 import lombok.extern.slf4j.Slf4j;
 import net.maritimeconnectivity.serviceregistry.components.DomainDtoMapper;
 import net.maritimeconnectivity.serviceregistry.components.Gmsp;
@@ -32,7 +33,6 @@ import net.maritimeconnectivity.serviceregistry.models.domain.Instance;
 import net.maritimeconnectivity.serviceregistry.models.dto.mcp.McpEntityBase;
 import net.maritimeconnectivity.serviceregistry.models.dto.mcp.McpServiceDto;
 import net.maritimeconnectivity.serviceregistry.services.InstanceService;
-import net.maritimeconnectivity.serviceregistry.utils.CertificateParsingUtil;
 import net.maritimeconnectivity.serviceregistry.utils.GeometryJSONConverter;
 import net.maritimeconnectivity.serviceregistry.utils.WKTUtil;
 import org.apache.logging.log4j.util.Strings;
@@ -45,7 +45,6 @@ import org.locationtech.jts.io.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
@@ -57,8 +56,7 @@ import java.util.*;
  *
  * @author Nikolaos Vastardis (email: Nikolaos.Vastardis@gla-rad.org)
  */
-@Component
-@Path("/")
+@RestController
 @Validated
 @Slf4j
 public class SecomV2SearchServiceController implements SearchServiceServiceInterface {
@@ -84,14 +82,17 @@ public class SecomV2SearchServiceController implements SearchServiceServiceInter
     @Autowired
     InstanceService instanceService;
 
+    /**
+     * The MIR Client for the certificate operations.
+     */
     @Autowired(required = false)
     MirClient mirClient;
 
+    /**
+     * The GMSP Client for the global search.
+     */
     @Autowired(required = false)
     Gmsp gmspClient;
-
-    @Autowired
-    CertificateParsingUtil certificateParsingUtil;
 
     /**
      * Object Mapper from Domain to DTO.
@@ -108,18 +109,13 @@ public class SecomV2SearchServiceController implements SearchServiceServiceInter
      */
     @Tag(name = "SECOM")
     @Transactional
-    @Path(SEARCH_SERVICE_INTERFACE_PATH)
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    public SearchResult searchService(@Valid SearchFilterObject searchFilterObject) {
+    public ResponseEntity<SearchResult> searchService(@Valid @RequestBody SearchFilterObject searchFilterObject) {
         log.debug("REST request to search for a page of Instances for search filter object: {}", searchFilterObject);
 
         EnvelopeSearchFilterObject envelopeSearchFilterObject = searchFilterObject.getEnvelope();
 
         // Extract consumer MRN from certificate
-        String consumerMrn = certificateParsingUtil.getMrnFromCertificate(
-                envelopeSearchFilterObject.getEnvelopeSignatureCertificate());
+        String consumerMrn = SecomPemUtils.getMrnFromEnvelope(envelopeSearchFilterObject);
 
         log.info("Extracted MRN from certificate: {}", consumerMrn);
 
@@ -170,21 +166,22 @@ public class SecomV2SearchServiceController implements SearchServiceServiceInter
         UUID transactionId = UUID.randomUUID();
 
         //CallbackUrl is  /V2/UPLOADRESULTS/[TRANSACTIONID]
-        String callBackEndpoint = String.format("%s/api/g1191/v2/uploadResults/%s", msrBaseUrl,
+        String callBackEndpoint = String.format("%s/api/g1191/v2/uploadResults/%s",
+                msrBaseUrl,
                 transactionId);
 
         //Aggregator
 
         //Propagate the search to the GMSP if available
-        String gmspRequestUuid = null;
-
         log.debug("gmspClient is null: {}", this.gmspClient == null);
         log.debug("localSearchOnly: {}", localSearchOnly);
+        final String gmspRequestUuid;
         if (this.gmspClient != null && !localSearchOnly) {
-
-
-            gmspRequestUuid = gmspClient.globalSearch(callBackEndpoint, consumerMrn,
-                    searchFilterObject, searchGeometry);
+            gmspRequestUuid = gmspClient.globalSearch(callBackEndpoint,
+                    consumerMrn,
+                    searchFilterObject,
+                    searchGeometry);
+            log.debug("global search initiated with GMSP UUID: {}", gmspRequestUuid);
         }
 
         // Get the search object results and if possible also update the
@@ -208,14 +205,10 @@ public class SecomV2SearchServiceController implements SearchServiceServiceInter
                             Optional.of(searchObject)
                                     .map(ServiceInstanceObject::getInstanceId)
                                     .map(Strings::trimToNull)
-                                    .orElse(null),
-                            Optional.of(searchObject)
-                                    .map(ServiceInstanceObject::getVersion)
-                                    .map(Strings::trimToNull)
                                     .orElse(null)
                     );
                     // And append the valid ones to the search object
-                    ((ServiceInstanceObject) searchObject).setCertificates(
+                    searchObject.setCertificates(
                             Optional.ofNullable(mcpEntity)
                                     .map(McpEntityBase::getValidCertificatesAsString) // List<String>
                                     .map(list -> list.toArray(new String[0]))         // convert to String[]
@@ -228,7 +221,6 @@ public class SecomV2SearchServiceController implements SearchServiceServiceInter
                 }
             }
         }
-
         log.debug("UUID is {}", transactionId);
 
         // Finally build the response
@@ -277,7 +269,7 @@ public class SecomV2SearchServiceController implements SearchServiceServiceInter
         searchResult.setEnvelope(envelope);
 
         // And return
-        return searchResult;
+        return ResponseEntity.ok(searchResult);
     }
 
     /**
@@ -309,7 +301,7 @@ public class SecomV2SearchServiceController implements SearchServiceServiceInter
         else {
             try{
                 return GeometryJSONConverter.convertToGeometry(this.objectMapper.readTree(geometryString));
-            } catch (JsonProcessingException ex) {
+            } catch (JacksonException ex) {
                 throw new SecomValidationException(ex.getMessage());
             }
         }
