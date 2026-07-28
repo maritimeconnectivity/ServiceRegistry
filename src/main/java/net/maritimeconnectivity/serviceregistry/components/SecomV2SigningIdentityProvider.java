@@ -14,8 +14,10 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 
 @Component
 @Slf4j
@@ -85,6 +87,30 @@ public class SecomV2SigningIdentityProvider {
             return (X509Certificate) ks.getCertificate(alias);
         } catch (Exception e) {
             throw new IllegalStateException("Unable to load signing certificate", e);
+        }
+    }
+
+    /**
+     * Returns the full certificate chain for the signing identity, ordered
+     * from the leaf (signing) certificate to the root CA certificate.
+     *
+     * @return the signing certificate chain
+     */
+    public X509Certificate[] getSigningCertificateChain() {
+        try {
+            KeyStore ks = getSigningIdentity();
+            String alias = getSigningAlias();
+            Certificate[] chain = ks.getCertificateChain(alias);
+
+            if (chain == null || chain.length == 0) {
+                throw new IllegalStateException("No certificate chain found for alias '" + alias + "'");
+            }
+
+            return Arrays.stream(chain)
+                    .map(X509Certificate.class::cast)
+                    .toArray(X509Certificate[]::new);
+        } catch (KeyStoreException e) {
+            throw new IllegalStateException("Unable to load signing certificate chain", e);
         }
     }
 
