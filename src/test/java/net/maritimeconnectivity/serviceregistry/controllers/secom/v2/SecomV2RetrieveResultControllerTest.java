@@ -5,140 +5,140 @@ import net.maritimeconnectivity.serviceregistry.components.SecomV2SignatureProvi
 import net.maritimeconnectivity.serviceregistry.components.SecomV2SigningIdentityProvider;
 import net.maritimeconnectivity.serviceregistry.components.SecomV2TrustStoreProviderImpl;
 import net.maritimeconnectivity.serviceregistry.services.SearchConsolidationService;
-import net.maritimeconnectivity.serviceregistry.services.SecomSearchResultSigningService;
-import net.maritimeconnectivity.serviceregistry.utils.CertificateParsingUtil;
+import org.grad.secomv2.core.components.SecomSignatureAdvice;
 import org.grad.secomv2.core.models.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static net.maritimeconnectivity.serviceregistry.controllers.secom.v2.RetrieveResultController.RETREIVE_RESULTS_INTERFACE_PATH;
+import static org.grad.secomv2.core.interfaces.RetrieveResultServiceInterface.RETRIEVE_RESULT_INTERFACE_PATH;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @EnableAutoConfiguration(exclude = {SecurityAutoConfiguration.class})
+@AutoConfigureWebTestClient
 @Import(TestingConfiguration.class)
 public class SecomV2RetrieveResultControllerTest {
 
+    /**
+     * The Web Test Client
+     */
     @Autowired
     private WebTestClient webTestClient;
 
+    /**
+     * A Mockito Spy of the tested Controller.
+     */
+    @MockitoSpyBean
+    private RetrieveResultController retrieveResultController;
+
+    /**
+     * The Search Consolidation Service.
+     */
     @MockitoBean
     private SearchConsolidationService searchConsolidationService;
 
+    /**
+     * Mock the SECOM signature advise
+     */
     @MockitoBean
-    private SecomV2SignatureProviderImpl secomV2SignatureProvider;
+    private SecomSignatureAdvice secomSignatureAdvice;
 
-    @MockitoBean
-    private SecomV2SigningIdentityProvider secomV2SigningIdentityProvider;
-
-    @MockitoBean
-    private SecomV2TrustStoreProviderImpl secomV2TrustStoreProvider;
-
-    @MockitoBean
-    private org.grad.secomv2.core.components.SecomSignatureAdvice secomSignatureFilter;
-
-    @MockitoBean
-    private SecomSearchResultSigningService secomSearchResultSigningService;
-
-    @MockitoBean
-    CertificateParsingUtil certificateParsingUtil;
-
+    // Test Variables
     private RetrieveResultObject retrieveResultObject;
+    private String mrn;
 
     @BeforeEach
     void setUp() {
-        doAnswer(invocation -> {
-            EnvelopeSearchResultObject envelope = invocation.getArgument(0, EnvelopeSearchResultObject.class);
+        // Setup a search results envelope object
+        final EnvelopeRetrieveResultObject envelopeSearchResultObject = new EnvelopeRetrieveResultObject();
+        this.retrieveResultObject = new RetrieveResultObject();
+        this.retrieveResultObject.setEnvelope(envelopeSearchResultObject);
+        this.retrieveResultObject.setEnvelopeSignature("TEST_SIGNATURE");
 
-            SearchResult result = new SearchResult();
-            result.setEnvelope(envelope);
-            result.setEnvelopeSignature("TEST_SIGNATURE");
+        // Fix an MRN
+        this.mrn = "TESTMRN";
 
-            return result;
-        }).when(secomSearchResultSigningService)
-                .signSearchResult(any(EnvelopeSearchResultObject.class));
-
-        EnvelopeRetrieveResultObject envelopeSearchResultObject = new EnvelopeRetrieveResultObject();
-        retrieveResultObject = new RetrieveResultObject();
-        retrieveResultObject.setEnvelope(envelopeSearchResultObject);
-        retrieveResultObject.setEnvelopeSignature("TEST_SIGNATURE");
-
+        // For all calls mock the MRN retrieval on the controller
+        doReturn(this.mrn).when(this.retrieveResultController).getRetrieveResultsEnvelopeMrn(any());
     }
 
     @Test
     void testRetrieveResultForInvalidTransactionId() {
-        String transactionId = "invalidTransactionId";
-        String uid = "TESTMRN2";
-
+        // Create an invalid transaction ID
+        final String transactionId = "invalidTransactionId";
+        // And set it to the envelope
         retrieveResultObject.getEnvelope().setTransactionId(transactionId);
 
-        doReturn(uid)
-                .when(certificateParsingUtil)
-                .getMrnFromCertificate(any());
-
-        doReturn(null)
-                .when(searchConsolidationService)
-                .getResults(eq(transactionId), eq(uid));
-
+        // Now perform the endpoint call
         webTestClient.post()
-                .uri("/api/secom" + RETREIVE_RESULTS_INTERFACE_PATH + "/" + transactionId)
+                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH)
                 .bodyValue(retrieveResultObject)
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isBadRequest();
+    }
 
-        verify(certificateParsingUtil)
-                .getMrnFromCertificate(any());
+    @Test
+    void testRetrieveResultForNonExistentTransactionId() {
+        // Create a valid transaction ID
+        final String transactionId = String.valueOf(UUID.randomUUID());
+        // And set it to the envelope
+        retrieveResultObject.getEnvelope().setTransactionId(transactionId);
 
-        verify(searchConsolidationService)
-                .getResults(eq(transactionId), eq(uid));
+        // Return no results from the consolidation service
+        doReturn(null)
+                .when(searchConsolidationService)
+                .getResults(eq(transactionId), eq(this.mrn));
+
+        // Now perform the endpoint call
+        webTestClient.post()
+                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH)
+                .bodyValue(retrieveResultObject)
+                .exchange()
+                .expectStatus()
+                .isNotFound();
+
+        // Make sure we tried to read the results at lead once
+        verify(searchConsolidationService).getResults(eq(transactionId), any());
     }
 
     @Test
     void testRetrieveResultForValidTransactionId() {
-        List<ServiceInstanceObject> validResults = new ArrayList<>();
-        String validTransactionId = UUID.randomUUID().toString();
-        String uid = "TESTMRN2";
+        // Create a valid transaction ID
+        final String validTransactionId = UUID.randomUUID().toString();
+        // And set it to the envelope
+        this.retrieveResultObject.getEnvelope().setTransactionId(validTransactionId);
 
-        doReturn(uid)
-                .when(certificateParsingUtil)
-                .getMrnFromCertificate(any());
-
-
-        //Setup test variable
+        // Now create a set of test results
+        final List<ServiceInstanceObject> validResults = new ArrayList<>();
         final ServiceInstanceObject resultInstance = new ServiceInstanceObject();
         resultInstance.setName("testName");
         validResults.add(resultInstance);
 
-        this.retrieveResultObject.getEnvelope().setTransactionId(validTransactionId);
-
-        // Mock the signature validation
-        doReturn(true).when(this.secomV2SignatureProvider).validateSignature(any(),any(),any(),any());
-
-        //Return the instance when calling getResults
+        // Return the results from the consolidation service
         doReturn(validResults)
                 .when(searchConsolidationService)
-                .getResults(eq(validTransactionId), any());
+                .getResults(eq(validTransactionId), eq(this.mrn));
 
-
-
+        // Now perform the endpoint call
         webTestClient.post()
-                .uri("/api/secom" + RETREIVE_RESULTS_INTERFACE_PATH + "/" + validTransactionId)
+                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH)
                 .bodyValue(retrieveResultObject)
                 .exchange()
                 .expectStatus().isOk()
@@ -149,79 +149,74 @@ public class SecomV2RetrieveResultControllerTest {
                             result.getEnvelope().getTransactionId().toString());
                 });
 
-        verify(secomSearchResultSigningService).signSearchResult(any());
-        verify(searchConsolidationService).getResults(eq(validTransactionId), any());
-
+        // Make sure we tried to read the results at lead once
+        verify(searchConsolidationService).getResults(eq(validTransactionId), eq(this.mrn));
     }
 
     // Shows that the controller will actually pull new data from the service on each call
     @Test
     void testRetrieveResultsReturnsCurrentServiceResponseOnEachCall () {
-        String validTransactionId = UUID.randomUUID().toString();
-        String uid = "TESTMRN2";
+        // Create a valid transaction ID
+        final String validTransactionId = UUID.randomUUID().toString();
+        // And set it to the envelope
+        this.retrieveResultObject.getEnvelope().setTransactionId(validTransactionId);
 
-        List<ServiceInstanceObject> emptyResults = new ArrayList<>();
+        // Now create a set of empty test results
+        final List<ServiceInstanceObject> emptyResults = new ArrayList<>();
 
-        //Setup test variable
-        List<ServiceInstanceObject> validResults = new ArrayList<>();
+        // And create a set of test results
+        final List<ServiceInstanceObject> validResults = new ArrayList<>();
         final ServiceInstanceObject resultInstance = new ServiceInstanceObject();
         resultInstance.setName("testName");
         validResults.add(resultInstance);
 
-        List<ServiceInstanceObject> validResultsNew = new ArrayList<>();
+        // And create another set of test results
+        final List<ServiceInstanceObject> validResultsNew = new ArrayList<>();
         final ServiceInstanceObject newResultInstance = new ServiceInstanceObject();
         newResultInstance.setName("newTestName");
         validResultsNew.add(newResultInstance);
 
-        this.retrieveResultObject.getEnvelope().setTransactionId(validTransactionId);
+        // Return the instance when calling getResults
+        when(searchConsolidationService.getResults(eq(validTransactionId), eq(this.mrn)))
+                .thenReturn(validResults)       // Call 1
+                .thenReturn(validResultsNew)    // Call 2
+                .thenReturn(emptyResults);      // Call 3
 
-        doReturn(uid)
-                .when(certificateParsingUtil)
-                .getMrnFromCertificate(any());
-
-        //Return the instance when calling getResults
-        when(searchConsolidationService.getResults(validTransactionId, uid))
-                .thenReturn(validResults) //Call 1
-                .thenReturn(validResultsNew) //Call 2
-                .thenReturn(emptyResults);
-
-
+        // Now perform the first endpoint call
         webTestClient.post()
-                .uri("/api/secom" + RETREIVE_RESULTS_INTERFACE_PATH + "/" + validTransactionId)
+                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH)
                 .bodyValue(retrieveResultObject)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(SearchResult.class)
                 .value(result -> {
                     Assertions.assertEquals(1, result.getEnvelope().getServiceInstance().size());
-                    Assertions.assertEquals(validTransactionId,
-                            result.getEnvelope().getTransactionId().toString());
+                    Assertions.assertEquals(validTransactionId, result.getEnvelope().getTransactionId().toString());
                     Assertions.assertEquals("testName", result.getEnvelope().getServiceInstance().getFirst().getName());
                 });
 
+        // Now perform the second endpoint call
         webTestClient.post()
-                .uri("/api/secom" + RETREIVE_RESULTS_INTERFACE_PATH + "/" + validTransactionId)
+                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH)
                 .bodyValue(retrieveResultObject)
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(SearchResult.class)
                 .value(result -> {
                     Assertions.assertEquals(1, result.getEnvelope().getServiceInstance().size());
-                    Assertions.assertEquals(validTransactionId,
-                            result.getEnvelope().getTransactionId().toString());
+                    Assertions.assertEquals(validTransactionId, result.getEnvelope().getTransactionId().toString());
                     Assertions.assertEquals("newTestName", result.getEnvelope().getServiceInstance().getFirst().getName());
                 });
 
+        // Now perform the final second endpoint call
         webTestClient.post()
-                .uri("/api/secom" + RETREIVE_RESULTS_INTERFACE_PATH + "/" + validTransactionId)
+                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH)
                 .bodyValue(retrieveResultObject)
                 .exchange()
                 .expectStatus().isOk();
 
-        verify(searchConsolidationService, times(3)).getResults(validTransactionId, uid);
-
-
-
+        // Make sure we tried to read the results 3 times
+        verify(searchConsolidationService, times(3)).getResults(eq(validTransactionId), eq(this.mrn));
     }
 
 }

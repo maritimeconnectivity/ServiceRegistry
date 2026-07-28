@@ -16,25 +16,23 @@
 
 package net.maritimeconnectivity.serviceregistry.controllers.secom.v1;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import net.maritimeconnectivity.serviceregistry.components.DomainDtoMapper;
-import net.maritimeconnectivity.serviceregistry.components.SecomV2SignatureProviderImpl;
+import net.maritimeconnectivity.serviceregistry.TestingConfiguration;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import net.maritimeconnectivity.serviceregistry.feign.MirClient;
 import net.maritimeconnectivity.serviceregistry.models.domain.Instance;
-import net.maritimeconnectivity.serviceregistry.models.domain.Xml;
 import net.maritimeconnectivity.serviceregistry.models.dto.mcp.McpCertificateDto;
 import net.maritimeconnectivity.serviceregistry.models.dto.mcp.McpServiceDto;
 import net.maritimeconnectivity.serviceregistry.models.dto.secom.v1.ResponseSearchObjectWithCert;
 import net.maritimeconnectivity.serviceregistry.models.dto.secom.v1.SearchObjectResultWithCert;
 import net.maritimeconnectivity.serviceregistry.services.InstanceService;
-import net.maritimeconnectivity.serviceregistry.services.SecomSearchResultSigningService;
 import org.grad.secom.core.models.ResponseSearchObject;
 import org.grad.secom.core.models.SearchFilterObject;
 import org.grad.secom.core.models.SearchObjectResult;
 import org.grad.secom.core.models.SearchParameters;
 import org.grad.secom.core.models.enums.SECOM_DataProductType;
-import org.grad.secomv2.core.models.EnvelopeSearchResultObject;
-import org.grad.secomv2.core.models.SearchResult;
 import org.iala_aism.g1128.v1_7.serviceinstanceschema.ServiceStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +41,7 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -65,13 +63,15 @@ import static org.grad.secom.core.interfaces.SearchServiceSecomInterface.SEARCH_
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 
 @ActiveProfiles("test")
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @EnableAutoConfiguration(exclude = {SecurityAutoConfiguration.class})
+@AutoConfigureWebTestClient
+@Import(TestingConfiguration.class)
 class SecomV1SearchServiceControllerTest {
 
     /**
@@ -80,24 +80,17 @@ class SecomV1SearchServiceControllerTest {
     @Autowired
     WebTestClient webTestClient;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-
+    /**
+     * Mock the Instance Service.
+     */
     @MockitoBean
     private InstanceService instanceService;
 
+    /**
+     * Mock the MIR Client for the certificate operations.
+     */
     @MockitoBean
     private MirClient mirClient;
-
-    @MockitoBean
-    private SecomV2SignatureProviderImpl secomV2SignatureProvider;
-
-    @MockitoBean
-    private org.grad.secom.core.components.SecomSignatureFilter secomSignatureFilter;
-
-    @MockitoBean
-    private SecomSearchResultSigningService secomSearchResultSigningService;
 
     // Test Variables
     private List<Instance> instances;
@@ -152,17 +145,6 @@ class SecomV1SearchServiceControllerTest {
 
         // Create a pageable definition
         this.pageable = PageRequest.of(0, 5);
-
-        doAnswer(invocation -> {
-            EnvelopeSearchResultObject envelope = invocation.getArgument(0, EnvelopeSearchResultObject.class);
-
-            SearchResult result = new SearchResult();
-            result.setEnvelope(envelope);
-            result.setEnvelopeSignature("TEST_SIGNATURE");
-
-            return result;
-        }).when(secomSearchResultSigningService)
-                .signSearchResult(any(EnvelopeSearchResultObject.class));
     }
 
     /**
@@ -188,7 +170,7 @@ class SecomV1SearchServiceControllerTest {
         // Perform the web request
         webTestClient.post()
                 .uri(uriBuilder -> uriBuilder
-                        .path("/api/secom/" + SEARCH_SERVICE_INTERFACE_PATH)
+                        .path("/api/secom" + SEARCH_SERVICE_INTERFACE_PATH)
                         .queryParam("page", 0)
                         .queryParam("pageSize", Integer.MAX_VALUE)
                         .build())
@@ -236,8 +218,8 @@ class SecomV1SearchServiceControllerTest {
 
         // Mock the service call for creating a new instance
         doReturn(page).when(this.instanceService).handle(any(), any(), any());
-        doAnswer(i -> this.mcpServiceDtos.get(i.getArguments()[1])).when(this.mirClient).getServiceEntity(any(), any(), any());
-        doAnswer(i -> this.mcpServiceDtos.get((String)i.getArgument(1))).when(this.mirClient).getServiceEntity(any(), any(), any());
+        doAnswer(i -> this.mcpServiceDtos.get(i.getArguments()[1])).when(this.mirClient).getServiceEntity(any(), any());
+        doAnswer(i -> this.mcpServiceDtos.get((String)i.getArgument(1))).when(this.mirClient).getServiceEntity(any(), any());
 
         // Perform the web request
         webTestClient.post()
@@ -354,7 +336,7 @@ class SecomV1SearchServiceControllerTest {
 
         // Mock the service calls for creating a new instance
         doReturn(page).when(this.instanceService).handle(any(), any(), any());
-        doAnswer(i -> this.mcpServiceDtos.get((String)i.getArgument(1))).when(this.mirClient).getServiceEntity(any(), any(), any());
+        doAnswer(i -> this.mcpServiceDtos.get((String)i.getArgument(1))).when(this.mirClient).getServiceEntity(any(), any());
 
         // Perform the web request
         webTestClient.post()
