@@ -1,5 +1,6 @@
 package net.maritimeconnectivity.serviceregistry.components;
 
+import org.grad.secomv2.springboot4.components.UploadResultsClient;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -231,6 +232,7 @@ public class Gmsp {
             return;
         }
 
+
         log.debug("Searching local database");
         //Perform local search, which gives a list of SearchObjectResult objects
         final Page<Instance> instancesPage = this.instanceService.search(dto.getSearchFilterObject().getEnvelope());
@@ -240,7 +242,8 @@ public class Gmsp {
         log.debug("Found {} search results for local database", searchObjectResults.size());
 
         try {
-            uploadSecomClient.uploadResults(searchObjectResults);
+           uploadResults(URI.create(dto.getEndpoint()).toURL(), secomConfigProperties,
+                   searchObjectResults);
         } catch (WebClientResponseException e){
             log.error("Error uploading results via SECOM Upload interface, CODE:", e);
             return;
