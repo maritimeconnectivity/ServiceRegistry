@@ -8,7 +8,6 @@ import net.maritimeconnectivity.serviceregistry.models.domain.UploadSearchResult
 import net.maritimeconnectivity.serviceregistry.models.dto.secom.v2.SearchObjectResultWithCert;
 import net.maritimeconnectivity.serviceregistry.services.SearchConsolidationService;
 import org.grad.secomv2.core.models.ServiceInstanceObject;
-import org.grad.secomv2.springboot4.components.UploadResultsClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

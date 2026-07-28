@@ -1,6 +1,5 @@
 package net.maritimeconnectivity.serviceregistry.components;
 
-import org.grad.secomv2.springboot4.components.UploadResultsClient;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -9,8 +8,10 @@ import lombok.extern.slf4j.Slf4j;
 import net.maritimeconnectivity.serviceregistry.components.mms.MmsEdgeRouter;
 import net.maritimeconnectivity.serviceregistry.components.mms.OutgoingMmtpFactory;
 import net.maritimeconnectivity.serviceregistry.components.mms.OutgoingMmtpMessage;
+import net.maritimeconnectivity.serviceregistry.models.domain.EnvelopeUploadSearchResultObject;
 import net.maritimeconnectivity.serviceregistry.models.domain.Instance;
 import net.maritimeconnectivity.serviceregistry.models.domain.SearchArea;
+import net.maritimeconnectivity.serviceregistry.models.domain.UploadSearchResultObject;
 import net.maritimeconnectivity.serviceregistry.models.dto.gmsp.GlobalSearchRequestDto;
 import net.maritimeconnectivity.serviceregistry.models.dto.mms.MmsSearchMessageDto;
 import net.maritimeconnectivity.serviceregistry.repos.InstanceRepo;
@@ -274,12 +275,23 @@ public class Gmsp {
                 url,
                 secomConfigProperties);
 
+        // Wrap the search results in the expected UploadSearchResultObject envelope
+        final EnvelopeUploadSearchResultObject envelope = new EnvelopeUploadSearchResultObject();
+        envelope.setServiceInstance(searchResults);
+        final UploadSearchResultObject uploadResultsObject = new UploadSearchResultObject();
+        uploadResultsObject.setEnvelope(envelope);
+
+        // Sign the envelope, using the SecomClient's configured providers
+        if (secomClient.getSignatureProvider() != null) {
+            uploadResultsObject.signEnvelope(secomClient.getCertificateProvider(), secomClient.getSignatureProvider());
+        }
+
         // Make the bespoke G1191 UploadResults query
         final ResponseEntity<Void> entity = secomClient.getSecomClient()
                 .post()
                 .uri("")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(searchResults)
+                .bodyValue(uploadResultsObject)
                 .exchangeToMono(response -> response.toBodilessEntity())
                 .block();
 

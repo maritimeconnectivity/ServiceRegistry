@@ -18,6 +18,7 @@ package net.maritimeconnectivity.serviceregistry.models.domain;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
+import org.grad.secomv2.core.base.EnvelopeSignatureBearer;
 
 
 /**
@@ -25,7 +26,7 @@ import jakarta.validation.constraints.NotNull;
  *
  * @author Jakob Svenningsen (email: jakob@dmc.international)
  */
-public class UploadSearchResultObject {
+public class UploadSearchResultObject implements EnvelopeSignatureBearer {
 
     @NotNull
     private EnvelopeUploadSearchResultObject envelope;
@@ -37,6 +38,7 @@ public class UploadSearchResultObject {
      * Get the envelope
      * @return envelope
      */
+    @Override
     public EnvelopeUploadSearchResultObject getEnvelope() {return envelope;}
 
     /**
@@ -51,6 +53,7 @@ public class UploadSearchResultObject {
      *
      * @return envelopeSignature
      */
+    @Override
     public String getEnvelopeSignature() {return envelopeSignature;}
 
     /**
@@ -58,6 +61,7 @@ public class UploadSearchResultObject {
      *
      * @param envelopeSignature the envelope signature array
      */
+    @Override
     public void setEnvelopeSignature(String envelopeSignature) {this.envelopeSignature = envelopeSignature;}
 
 

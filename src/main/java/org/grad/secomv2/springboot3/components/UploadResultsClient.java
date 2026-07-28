@@ -20,6 +20,13 @@ import java.security.cert.CertificateException;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * @deprecated superseded by building/signing the {@link UploadSearchResultObject}
+ * envelope directly against {@link SecomClient} (see {@code Gmsp.uploadResults}),
+ * which signs with the configured signature/certificate providers instead of a
+ * hardcoded placeholder signature.
+ */
+@Deprecated
 @Slf4j
 public class UploadResultsClient extends SecomClient {
 
