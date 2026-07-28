@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -42,12 +43,14 @@ public class RetrieveResultController implements RetrieveResultServiceInterface 
      * transaction is identified by the transactionId field in the response to the initial
      * searchService request.
      *
+     * @param transactionId The transaction ID of the search, provided as a query parameter
      * @param retrieveResultObject The search filter object
      * @return the result object
      */
     @Tag(name = "SECOM")
     @Transactional
-    public ResponseEntity<SearchResult> retrieveResult(@Valid @RequestBody RetrieveResultObject retrieveResultObject) {
+    public ResponseEntity<SearchResult> retrieveResult(@RequestParam(name = "transactionId", required = true) String transactionId,
+                                                         @Valid @RequestBody RetrieveResultObject retrieveResultObject) {
 
         // Get the envelope of the retrieve results object
         final EnvelopeRetrieveResultObject envelopeSearchResultObject = retrieveResultObject.getEnvelope();
@@ -56,10 +59,15 @@ public class RetrieveResultController implements RetrieveResultServiceInterface 
         final String consumerMrn = this.getRetrieveResultsEnvelopeMrn(envelopeSearchResultObject);
         final String transactionIdBody = this.getRetrieveResultsEnvelopeTransactionID(envelopeSearchResultObject);
 
+        // The transaction ID must be provided consistently as both a query parameter and in the envelope
+        if (transactionIdBody != null && !transactionId.equals(transactionIdBody)) {
+            throw new SecomValidationException("Transaction ID query parameter does not match the envelope transaction ID");
+        }
+
         // Parse the transaction UUID
         final UUID transactionUUID;
         try{
-            transactionUUID = UUID.fromString(transactionIdBody);
+            transactionUUID = UUID.fromString(transactionId);
         } catch (Exception ex) {
             throw new SecomValidationException(ex.getMessage());
         }
