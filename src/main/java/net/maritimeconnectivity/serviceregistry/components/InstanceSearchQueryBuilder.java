@@ -67,7 +67,7 @@ public class InstanceSearchQueryBuilder {
 
             // Handle the description filter
             if (Strings.isNotBlank(searchFilterObject.getQuery().getDescription())) {
-                query = this.addToQuery(query, "description", searchFilterObject.getQuery().getDescription(), BooleanOperator.AND);
+                query = this.addToQuery(query, "comment", searchFilterObject.getQuery().getDescription(), BooleanOperator.AND);
             }
 
             // Handle the specification filter
@@ -86,8 +86,8 @@ public class InstanceSearchQueryBuilder {
             }
 
             // Handle the service Type filter
-            if (Strings.isNotBlank(String.valueOf(searchFilterObject.getQuery().getServiceType()))) {
-                query = this.addToQuery(query, "serviceType", String.valueOf(searchFilterObject.getQuery().getServiceType()), BooleanOperator.AND);
+            if (searchFilterObject.getQuery().getServiceType() != null) {
+                query = this.addToQuery(query, "serviceTypes", String.valueOf(searchFilterObject.getQuery().getServiceType()), BooleanOperator.AND);
             }
 
             // Handle the UN/LOCODE filter
