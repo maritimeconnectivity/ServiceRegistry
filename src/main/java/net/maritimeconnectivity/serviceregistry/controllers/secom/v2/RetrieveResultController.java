@@ -13,8 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -43,13 +43,13 @@ public class RetrieveResultController implements RetrieveResultServiceInterface 
      * transaction is identified by the transactionId field in the response to the initial
      * searchService request.
      *
-     * @param transactionId The transaction ID of the search, provided as a query parameter
+     * @param transactionId The transaction ID of the search, provided as a path variable
      * @param retrieveResultObject The search filter object
      * @return the result object
      */
     @Tag(name = "SECOM")
     @Transactional
-    public ResponseEntity<SearchResult> retrieveResult(@RequestParam(name = "transactionId", required = true) String transactionId,
+    public ResponseEntity<SearchResult> retrieveResult(@PathVariable(name = "transactionId") String transactionId,
                                                          @Valid @RequestBody RetrieveResultObject retrieveResultObject) {
 
         // Get the envelope of the retrieve results object

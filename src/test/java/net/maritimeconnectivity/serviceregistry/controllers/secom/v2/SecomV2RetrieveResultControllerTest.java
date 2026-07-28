@@ -88,7 +88,7 @@ public class SecomV2RetrieveResultControllerTest {
 
         // Now perform the endpoint call
         webTestClient.post()
-                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH)
+                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH, transactionId)
                 .bodyValue(retrieveResultObject)
                 .exchange()
                 .expectStatus().isBadRequest();
@@ -108,7 +108,7 @@ public class SecomV2RetrieveResultControllerTest {
 
         // Now perform the endpoint call
         webTestClient.post()
-                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH)
+                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH, transactionId)
                 .bodyValue(retrieveResultObject)
                 .exchange()
                 .expectStatus()
@@ -138,7 +138,7 @@ public class SecomV2RetrieveResultControllerTest {
 
         // Now perform the endpoint call
         webTestClient.post()
-                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH)
+                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH, validTransactionId)
                 .bodyValue(retrieveResultObject)
                 .exchange()
                 .expectStatus().isOk()
@@ -184,7 +184,7 @@ public class SecomV2RetrieveResultControllerTest {
 
         // Now perform the first endpoint call
         webTestClient.post()
-                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH)
+                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH, validTransactionId)
                 .bodyValue(retrieveResultObject)
                 .exchange()
                 .expectStatus().isOk()
@@ -197,7 +197,7 @@ public class SecomV2RetrieveResultControllerTest {
 
         // Now perform the second endpoint call
         webTestClient.post()
-                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH)
+                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH, validTransactionId)
                 .bodyValue(retrieveResultObject)
                 .exchange()
                 .expectStatus().isOk()
@@ -210,7 +210,7 @@ public class SecomV2RetrieveResultControllerTest {
 
         // Now perform the final second endpoint call
         webTestClient.post()
-                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH)
+                .uri("/api/secom" + RETRIEVE_RESULT_INTERFACE_PATH, validTransactionId)
                 .bodyValue(retrieveResultObject)
                 .exchange()
                 .expectStatus().isOk();
