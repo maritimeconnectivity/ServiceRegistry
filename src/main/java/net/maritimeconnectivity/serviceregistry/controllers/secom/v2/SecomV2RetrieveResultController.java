@@ -29,7 +29,7 @@ import java.util.UUID;
 @RestController
 @Validated
 @Slf4j
-public class RetrieveResultController implements RetrieveResultServiceInterface {
+public class SecomV2RetrieveResultController implements RetrieveResultServiceInterface {
 
     /**
      * The Search Consolidation Service.
@@ -40,7 +40,7 @@ public class RetrieveResultController implements RetrieveResultServiceInterface 
     /**
      * POST /v2/retrieveResult : The purpose of this interface is pull results of a
      * search transaction for which more results may arrive asynchronously. The search
-     * transaction is identified by the transactionId field in the response to the initial
+     * transaction is identified by the transactionId field in the response to the initial1
      * searchService request.
      *
      * @param transactionId The transaction ID of the search, provided as a path variable
@@ -49,8 +49,9 @@ public class RetrieveResultController implements RetrieveResultServiceInterface 
      */
     @Tag(name = "SECOM")
     @Transactional
-    public ResponseEntity<SearchResult> retrieveResult(@PathVariable(name = "transactionId") String transactionId,
-                                                         @Valid @RequestBody RetrieveResultObject retrieveResultObject) {
+    public ResponseEntity<SearchResult> retrieveResult(
+            @PathVariable String transactionId,
+            @Valid @RequestBody RetrieveResultObject retrieveResultObject) {
 
         // Get the envelope of the retrieve results object
         final EnvelopeRetrieveResultObject envelopeSearchResultObject = retrieveResultObject.getEnvelope();

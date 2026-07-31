@@ -6,6 +6,7 @@ import org.grad.secomv2.core.base.SecomCertificateProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.security.KeyStoreException;
 import java.security.cert.X509Certificate;
 
 @Component
@@ -14,9 +15,11 @@ import java.security.cert.X509Certificate;
 public class SecomV2CertificateProviderImpl implements SecomCertificateProvider {
 
     private final SecomV2SigningIdentityProvider signingIdentityProvider;
+    private final SecomV2TrustStoreProviderImpl secomV2TrustStoreProviderImpl;
 
-    public SecomV2CertificateProviderImpl(SecomV2SigningIdentityProvider signingIdentityProvider) {
+    public SecomV2CertificateProviderImpl(SecomV2SigningIdentityProvider signingIdentityProvider, SecomV2TrustStoreProviderImpl secomV2TrustStoreProviderImpl) {
         this.signingIdentityProvider = signingIdentityProvider;
+        this.secomV2TrustStoreProviderImpl = secomV2TrustStoreProviderImpl;
     }
 
     @Override
@@ -26,7 +29,12 @@ public class SecomV2CertificateProviderImpl implements SecomCertificateProvider 
         DigitalSignatureCertificate digitalSignatureCertificate = new DigitalSignatureCertificate();
         digitalSignatureCertificate.setCertificate(chain);
         digitalSignatureCertificate.setPublicKey(chain[0].getPublicKey());
-        digitalSignatureCertificate.setRootCertificate(chain[chain.length - 1]);
+        try {
+            digitalSignatureCertificate.setRootCertificate(secomV2TrustStoreProviderImpl.getRootCertificate());
+        } catch (KeyStoreException e) {
+            log.error("Unable to load root certificate from keystore: {}", e.getMessage());
+            throw new RuntimeException("Unable to load root certificate from keystore: {}", e);
+        }
         return digitalSignatureCertificate;
     }
 }

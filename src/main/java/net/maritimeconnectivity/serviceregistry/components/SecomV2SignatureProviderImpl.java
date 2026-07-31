@@ -22,6 +22,7 @@ import java.security.cert.X509Certificate;
 @ConditionalOnProperty(name = "secom.security.signingIdentity.enabled", havingValue = "true")
 public class SecomV2SignatureProviderImpl implements SecomSignatureProvider {
 
+
     private final SecomV2SigningIdentityProvider signingIdentityProvider;
 
     public SecomV2SignatureProviderImpl(SecomV2SigningIdentityProvider signingIdentityProvider) {

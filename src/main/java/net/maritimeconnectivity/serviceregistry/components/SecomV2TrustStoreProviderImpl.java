@@ -13,7 +13,9 @@ import java.io.InputStream;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
 @Component
 @ConditionalOnProperty(name = "secom.security.maritimeIdentity.enabled", havingValue = "true")
@@ -38,6 +40,13 @@ public class SecomV2TrustStoreProviderImpl implements SecomTrustStoreProvider {
     @Override
     public String getCARootCertificateAlias() {
         return this.rootCertAlias;
+    }
+
+    public X509Certificate getRootCertificate() throws KeyStoreException {
+
+            KeyStore trustStore = this.getTrustStore();
+            Certificate root = trustStore.getCertificate(this.rootCertAlias);
+            return (X509Certificate) root;
     }
 
     @Override

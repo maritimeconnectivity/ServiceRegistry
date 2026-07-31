@@ -1,9 +1,6 @@
 package net.maritimeconnectivity.serviceregistry.controllers.secom.v2;
 
 import net.maritimeconnectivity.serviceregistry.TestingConfiguration;
-import net.maritimeconnectivity.serviceregistry.components.SecomV2SignatureProviderImpl;
-import net.maritimeconnectivity.serviceregistry.components.SecomV2SigningIdentityProvider;
-import net.maritimeconnectivity.serviceregistry.components.SecomV2TrustStoreProviderImpl;
 import net.maritimeconnectivity.serviceregistry.services.SearchConsolidationService;
 import org.grad.secomv2.core.components.SecomSignatureAdvice;
 import org.grad.secomv2.core.models.*;
@@ -34,7 +31,7 @@ import static org.mockito.Mockito.*;
 @EnableAutoConfiguration(exclude = {SecurityAutoConfiguration.class})
 @AutoConfigureWebTestClient
 @Import(TestingConfiguration.class)
-public class SecomV2RetrieveResultControllerTest {
+public class SecomV2SecomV2RetrieveResultControllerTest {
 
     /**
      * The Web Test Client
@@ -46,7 +43,7 @@ public class SecomV2RetrieveResultControllerTest {
      * A Mockito Spy of the tested Controller.
      */
     @MockitoSpyBean
-    private RetrieveResultController retrieveResultController;
+    private SecomV2RetrieveResultController secomV2RetrieveResultController;
 
     /**
      * The Search Consolidation Service.
@@ -76,7 +73,7 @@ public class SecomV2RetrieveResultControllerTest {
         this.mrn = "TESTMRN";
 
         // For all calls mock the MRN retrieval on the controller
-        doReturn(this.mrn).when(this.retrieveResultController).getRetrieveResultsEnvelopeMrn(any());
+        doReturn(this.mrn).when(this.secomV2RetrieveResultController).getRetrieveResultsEnvelopeMrn(any());
     }
 
     @Test
