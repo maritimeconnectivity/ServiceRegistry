@@ -18,6 +18,7 @@ package net.maritimeconnectivity.serviceregistry.models.domain;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import net.maritimeconnectivity.serviceregistry.utils.ServiceInstanceCsvUtil;
 import org.grad.secomv2.core.models.AbstractEnvelope;
 import org.grad.secomv2.core.models.ServiceInstanceObject;
 
@@ -63,7 +64,7 @@ public class EnvelopeUploadSearchResultObject extends AbstractEnvelope {
     @Override
     public Object[] getAttributeArray() {
         return new Object[]{
-                serviceInstance,
+                ServiceInstanceCsvUtil.toCanonicalBytes(serviceInstance),
                 envelopeSignatureCertificate,
                 envelopeRootCertificateThumbprint,
                 envelopeSignatureTime
