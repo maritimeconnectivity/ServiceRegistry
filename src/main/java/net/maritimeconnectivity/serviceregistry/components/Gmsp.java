@@ -1,8 +1,5 @@
 package net.maritimeconnectivity.serviceregistry.components;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.maritimeconnectivity.serviceregistry.components.mms.MmsEdgeRouter;
@@ -32,6 +29,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
@@ -40,7 +41,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Implements the GMSP (Global Maritime Search Platform) functionality for the
@@ -100,7 +105,7 @@ public class Gmsp {
     /**
      * The GMSP component constructor.
      *
-     * @param er the MMS edge router
+     * @param er          the MMS edge router
      * @param mmtpFactory the MMPT factory
      */
     public Gmsp(MmsEdgeRouter er, OutgoingMmtpFactory mmtpFactory) {
@@ -118,8 +123,6 @@ public class Gmsp {
     @PostConstruct
     public void init() {
         if (this.mmsEdgeRouter.isConnected()) {
-            this.subscribe(globalSearchSubject);
-
             //Sub to all areas in DB
             this.initializeSubscriptionsFromDb();
             this.running = true;
@@ -216,6 +219,7 @@ public class Gmsp {
 
     /**
      * Callback function to handle incoming global search requests from the MMS Router.
+     *
      * @param dto The DTO containing the search request details.
      */
     @Transactional(readOnly = true)
@@ -243,9 +247,9 @@ public class Gmsp {
         log.debug("Found {} search results for local database", searchObjectResults.size());
 
         try {
-           uploadResults(URI.create(dto.getEndpoint()).toURL(), secomConfigProperties,
-                   searchObjectResults);
-        } catch (WebClientResponseException e){
+            uploadResults(URI.create(dto.getEndpoint()).toURL(), secomConfigProperties,
+                    searchObjectResults);
+        } catch (WebClientResponseException e) {
             log.error("Error uploading results via SECOM Upload interface, CODE:", e);
             return;
         }
@@ -258,18 +262,18 @@ public class Gmsp {
      * therefore not supported out of the box from the SECOMLib. We can however
      * use the SECOMLib WebClient to perform a SECOM-like call.
      *
-     * @param url the URL to connect the SECOMLib WebClient to
+     * @param url                   the URL to connect the SECOMLib WebClient to
      * @param secomConfigProperties the SECOM Configuration Properties
-     * @param searchResults the search results to be uploaded
-     * @throws IOException – for IO exceptions
-     * @throws KeyStoreException – for exceptions while handling the key-store
-     * @throws NoSuchAlgorithmException – for exceptions onthe key-store alghorithm
-     * @throws CertificateException – for certificate exceptions
+     * @param searchResults         the search results to be uploaded
+     * @throws IOException               – for IO exceptions
+     * @throws KeyStoreException         – for exceptions while handling the key-store
+     * @throws NoSuchAlgorithmException  – for exceptions onthe key-store alghorithm
+     * @throws CertificateException      – for certificate exceptions
      * @throws UnrecoverableKeyException – for certificate key exceptions
      */
     protected void uploadResults(URL url,
-                                        SecomConfigProperties secomConfigProperties,
-                                        List<ServiceInstanceObject> searchResults) throws UnrecoverableKeyException, CertificateException, IOException, KeyStoreException, NoSuchAlgorithmException {
+                                 SecomConfigProperties secomConfigProperties,
+                                 List<ServiceInstanceObject> searchResults) throws UnrecoverableKeyException, CertificateException, IOException, KeyStoreException, NoSuchAlgorithmException {
         // Create a SECOM client
         final SecomClient secomClient = new SecomClient(
                 url,
@@ -317,12 +321,15 @@ public class Gmsp {
      * This operation is useful to bring back the GMSP to the correct state.
      */
     public void initializeSubscriptionsFromDb() {
+        // We always want to subscribe to the global subject no matter what
+        this.subscribe(globalSearchSubject);
+
         List<SearchArea> allAreasInDb = instanceRepo.findAllInstanceSearchAreasUsed();
         ArrayList<String> allSubjectsInDb = this.sac.areaToSubjectMapper(allAreasInDb);
         //Get existing subscriptions
         Set<String> existingSubscriptions = this.getSubscriptions();
         for (String subject : allSubjectsInDb) {
-            if(!existingSubscriptions.contains(subject)) {
+            if (!existingSubscriptions.contains(subject)) {
                 this.subscribe(subject);
             }
         }
@@ -335,7 +342,7 @@ public class Gmsp {
      * @return whether the global search request has been successfully sent or not
      */
     public boolean isSent(String gsrUuid) {
-        if  (this.globalSearchRequests.containsKey(gsrUuid)) {
+        if (this.globalSearchRequests.containsKey(gsrUuid)) {
             return this.globalSearchRequests.get(gsrUuid).isSent();
         }
         return false;
