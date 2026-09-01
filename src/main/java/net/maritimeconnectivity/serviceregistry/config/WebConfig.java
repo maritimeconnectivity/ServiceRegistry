@@ -28,6 +28,7 @@ import org.springframework.boot.webmvc.autoconfigure.WebMvcProperties;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.format.FormatterRegistry;
 import org.springframework.web.servlet.DispatcherServlet;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
@@ -126,10 +127,11 @@ public class WebConfig implements WebMvcConfigurer {
      * paths need to be added to this list too.
      * <p>
      * Boot's own {@code DispatcherServletRegistrationBean} refuses extra URL
-     * mappings (it must stay the single source of truth for
-     * {@link DispatcherServletPath}), so a plain {@link ServletRegistrationBean}
-     * is used here instead, and {@link DispatcherServletPath} is supplied
-     * separately below to satisfy other autoconfiguration (e.g. error pages).
+     * mappings, so {@link MultiMappingDispatcherServletRegistrationBean} is
+     * used here instead: it behaves like a plain {@link ServletRegistrationBean}
+     * (multiple mappings allowed) while still implementing
+     * {@link DispatcherServletPath} itself, so no separate bean of that type
+     * is needed to satisfy other autoconfiguration (e.g. error pages).
      *
      * @param dispatcherServlet the Spring MVC dispatcher servlet
      * @param webMvcProperties  the Spring MVC properties (servlet path/load-on-startup)
@@ -137,12 +139,13 @@ public class WebConfig implements WebMvcConfigurer {
      * @return the customized DispatcherServlet registration
      */
     @Bean
-    public ServletRegistrationBean<DispatcherServlet> dispatcherServletRegistration(
+    @Primary
+    public MultiMappingDispatcherServletRegistrationBean dispatcherServletRegistration(
             DispatcherServlet dispatcherServlet,
             WebMvcProperties webMvcProperties,
             ObjectProvider<MultipartConfigElement> multipartConfig) {
         String primaryPath = webMvcProperties.getServlet().getPath();
-        ServletRegistrationBean<DispatcherServlet> registration = new ServletRegistrationBean<>(
+        MultiMappingDispatcherServletRegistrationBean registration = new MultiMappingDispatcherServletRegistrationBean(
                 dispatcherServlet, primaryPath, "/api/secom/v2/searchService");
         registration.setName(DispatcherServletAutoConfiguration.DEFAULT_DISPATCHER_SERVLET_BEAN_NAME);
         registration.setLoadOnStartup(webMvcProperties.getServlet().getLoadOnStartup());
@@ -151,17 +154,34 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     /**
-     * Reports the primary DispatcherServlet path for autoconfiguration that
-     * depends on {@link DispatcherServletPath} (e.g. error page mapping),
-     * since {@link #dispatcherServletRegistration} above no longer produces
-     * a bean of that type.
-     *
-     * @param webMvcProperties the Spring MVC properties (servlet path)
-     * @return the primary dispatcher servlet path
+     * A {@link ServletRegistrationBean} for the {@link DispatcherServlet}
+     * that, unlike Boot's own {@code DispatcherServletRegistrationBean},
+     * allows multiple URL mappings, while still implementing
+     * {@link DispatcherServletPath} so it can serve as the single bean of
+     * that type other autoconfiguration depends on.
      */
-    @Bean
-    public DispatcherServletPath dispatcherServletPath(WebMvcProperties webMvcProperties) {
-        return webMvcProperties.getServlet()::getPath;
+    private static final class MultiMappingDispatcherServletRegistrationBean
+            extends ServletRegistrationBean<DispatcherServlet> implements DispatcherServletPath {
+
+        private final String path;
+
+        MultiMappingDispatcherServletRegistrationBean(DispatcherServlet dispatcherServlet, String path, String... extraUrlMappings) {
+            super(dispatcherServlet, prependPath(path, extraUrlMappings));
+            this.path = path;
+        }
+
+        @Override
+        public String getPath() {
+            return this.path;
+        }
+
+        private static String[] prependPath(String path, String... extraUrlMappings) {
+            String[] urlMappings = new String[extraUrlMappings.length + 1];
+            urlMappings[0] = path;
+            System.arraycopy(extraUrlMappings, 0, urlMappings, 1, extraUrlMappings.length);
+            return urlMappings;
+        }
+
     }
 
 }
