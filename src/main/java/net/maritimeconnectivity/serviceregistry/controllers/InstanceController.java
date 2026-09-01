@@ -16,6 +16,7 @@
 
 package net.maritimeconnectivity.serviceregistry.controllers;
 
+import com.netflix.discovery.converters.Auto;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.extern.slf4j.Slf4j;
 import net.maritimeconnectivity.serviceregistry.components.DomainDtoMapper;
@@ -33,6 +34,7 @@ import net.maritimeconnectivity.serviceregistry.utils.*;
 import org.iala_aism.g1128.v1_7.serviceinstanceschema.ServiceStatus;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
@@ -54,6 +56,9 @@ import java.util.List;
 @RequestMapping("/api/instances")
 @Slf4j
 public class InstanceController {
+
+    @Value("${info.gmsp.enabled}")
+    boolean gmspEnabled;
 
     /**
      * The Instance Service.
@@ -212,14 +217,14 @@ public class InstanceController {
         Instance newInstance = this.instanceDtoToDomainMapper.convertTo(instanceDto, Instance.class);
 
         // Get geometry if exists in DTO
-        if (instanceDto.getGeometry() != null) {
+        if (gmspEnabled && instanceDto.getGeometry() != null) {
             List<SearchArea> areas = searchAreaCalculator.findIntersectingSearchAreas(instanceDto.getGeometry());
             log.debug("Calculated search areas for instance {} : areas {}", instanceDto.getName(), areas.size());
             newInstance.addSearchAreas(areas);
         }
 
         ResponseEntity<InstanceDto> resp = this.saveInstance(newInstance, true);
-        if (this.subscriptionService != null && resp.getStatusCode().is2xxSuccessful()) {
+        if (gmspEnabled && resp.getStatusCode().is2xxSuccessful()) {
             subscriptionService.updateSubscriptions(newInstance);
         }
         return resp;
@@ -242,14 +247,14 @@ public class InstanceController {
         Instance instance = this.instanceDtoToDomainMapper.convertTo(instanceDto, Instance.class);
 
         // Get geometry if exists in DTO
-        if (instanceDto.getGeometry() != null) {
+        if (gmspEnabled && instanceDto.getGeometry() != null) {
             List<SearchArea> areas = searchAreaCalculator.findIntersectingSearchAreas(instanceDto.getGeometry());
             log.debug("Calculated search areas for instance {} : areas {}", instanceDto.getName(), areas.size());
             instance.updateSearchAreas(areas);
         }
 
         ResponseEntity<InstanceDto> response = this.saveInstance(instance, true);
-        if (response.getStatusCode().is2xxSuccessful()) {
+        if (gmspEnabled && response.getStatusCode().is2xxSuccessful()) {
             subscriptionService.updateSubscriptions(instance);
         }
         return response;
