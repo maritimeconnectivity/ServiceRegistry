@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Maritime Connectivity Platform Consortium
+ * Copyright (c) 2025 Maritime Connectivity Platform Consortium
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package net.maritimeconnectivity.serviceregistry.components;
 import lombok.extern.slf4j.Slf4j;
 import net.maritimeconnectivity.serviceregistry.models.domain.Doc;
 import net.maritimeconnectivity.serviceregistry.models.domain.Instance;
+import net.maritimeconnectivity.serviceregistry.models.domain.SearchArea;
 import org.hibernate.search.mapper.orm.Search;
 import org.hibernate.search.mapper.orm.massindexing.MassIndexer;
 import org.hibernate.search.mapper.orm.session.SearchSession;
@@ -63,7 +64,7 @@ public class HibernateSearchInit implements ApplicationListener<ContextRefreshed
         SearchSession searchSession = Search.session( entityManager );
 
         // Create a mass indexer
-        MassIndexer indexer = searchSession.massIndexer(Instance.class, Doc.class)
+        MassIndexer indexer = searchSession.massIndexer(Instance.class, Doc.class, SearchArea.class)
                 .threadsToLoadObjects( 7 );
 
         // And perform the indexing

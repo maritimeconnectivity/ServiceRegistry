@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Maritime Connectivity Platform Consortium
+ * Copyright (c) 2025 Maritime Connectivity Platform Consortium
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,4 +50,12 @@ public class InvalidRequestException extends MSRBaseException {
         super(message, t, httpStatus);
     }
 
+    /**
+     * Instantiates a new Invalid Request exception with a custom message.
+     *
+     * @param message the message
+     */
+    public InvalidRequestException(String message) {
+        super(message, null, httpStatus);
+    }
 }

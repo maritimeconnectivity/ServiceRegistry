@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Maritime Connectivity Platform Consortium
+ * Copyright (c) 2025 Maritime Connectivity Platform Consortium
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 package net.maritimeconnectivity.serviceregistry.components;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import net.maritimeconnectivity.serviceregistry.exceptions.InvalidRequestException;
 import net.maritimeconnectivity.serviceregistry.utils.GeometryJSONConverter;
 import org.locationtech.jts.geom.Geometry;
@@ -57,7 +57,7 @@ public class GeoJsonStringToGeometryConverter implements Converter<String, Geome
                 .map(json -> {
                 try {
                     return this.objectMapper.readTree(json);
-                } catch (JsonProcessingException ex) {
+                } catch (JacksonException ex) {
                     throw new InvalidRequestException(ex.getMessage(), ex);
                 }
             })

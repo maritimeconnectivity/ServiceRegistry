@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Maritime Connectivity Platform Consortium
+ * Copyright (c) 2025 Maritime Connectivity Platform Consortium
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,8 +46,8 @@ public interface MirClient {
     @GetMapping("/oidc/api/org/{org}/device/{mrn}")
     McpDeviceDto getDeviceEntity(@PathVariable("org") String org, @PathVariable("mrn") String mrn);
 
-    @GetMapping("/org/{org}/service/{mrn}/{version}")
-    McpServiceDto getServiceEntity(@PathVariable("org") String org, @PathVariable("mrn") String mrn, @PathVariable("version") String version);
+    @GetMapping("/org/{org}/service/{mrn}")
+    McpServiceDto getServiceEntity(@PathVariable("org") String org, @PathVariable("mrn") String mrn);
 
     @GetMapping("/org/{org}/user/{mrn}")
     McpUserDto getUserEntity(@PathVariable("org") String org, @PathVariable("mrn") String mrn);

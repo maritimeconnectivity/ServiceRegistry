@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Maritime Connectivity Platform Consortium
+ * Copyright (c) 2025 Maritime Connectivity Platform Consortium
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,9 @@
 
 package net.maritimeconnectivity.serviceregistry.utils;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.geojson.GeoJsonReader;
@@ -47,8 +48,8 @@ public class GeometryJSONConverter {
         try {
             JsonNode node = om.readTree(new GeoJsonWriter().write(geometry));
             return node;
-        } catch (IOException e) {
-            return null;
+        } catch (JacksonException e) {
+            return om.createObjectNode();
         }
     }
 
@@ -59,7 +60,7 @@ public class GeometryJSONConverter {
      * @return the geometry
      */
     public static Geometry convertToGeometry(JsonNode jsonNode) {
-        if (jsonNode == null  || jsonNode.toString() == "null" || jsonNode.asText() == "null") {
+        if (jsonNode == null || jsonNode.isNull()) {
             return null;
         }
 

@@ -16,9 +16,10 @@
 
 package net.maritimeconnectivity.serviceregistry.controllers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import net.maritimeconnectivity.serviceregistry.TestingConfiguration;
 import net.maritimeconnectivity.serviceregistry.components.DomainDtoMapper;
+import net.maritimeconnectivity.serviceregistry.components.Gmsp;
 import net.maritimeconnectivity.serviceregistry.exceptions.DataNotFoundException;
 import net.maritimeconnectivity.serviceregistry.exceptions.GeometryParseException;
 import net.maritimeconnectivity.serviceregistry.exceptions.XMLValidationException;
@@ -26,13 +27,14 @@ import net.maritimeconnectivity.serviceregistry.models.domain.Instance;
 import net.maritimeconnectivity.serviceregistry.models.dto.InstanceDto;
 import net.maritimeconnectivity.serviceregistry.models.dto.datatables.*;
 import net.maritimeconnectivity.serviceregistry.services.InstanceService;
-import org.iala_aism.g1128.v1_3.servicespecificationschema.ServiceStatus;
+import net.maritimeconnectivity.serviceregistry.services.SubscriptionService;
+import net.maritimeconnectivity.serviceregistry.utils.SearchAreaCalculator;
+import org.iala_aism.g1128.v1_7.serviceinstanceschema.ServiceStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -41,13 +43,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -56,9 +56,9 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ActiveProfiles("test")
-@WebMvcTest(controllers = InstanceController.class, excludeAutoConfiguration = {SecurityAutoConfiguration.class})
-@Import(TestingConfiguration.class)
+    @ActiveProfiles("test")
+    @WebMvcTest(controllers = InstanceController.class, excludeAutoConfiguration = {SecurityAutoConfiguration.class})
+    @Import(TestingConfiguration.class)
 class InstanceControllerTest {
 
     @Autowired
@@ -70,8 +70,14 @@ class InstanceControllerTest {
     @Autowired
     public DomainDtoMapper instanceDomainToDtoMapper;
 
-    @MockBean
+    @MockitoBean
     private InstanceService instanceService;
+
+    @MockitoBean
+    SearchAreaCalculator searchAreaCalculator;
+
+    @MockitoBean
+    SubscriptionService subscriptionService;
 
     // Test Variables
     private List<Instance> instances;
@@ -114,6 +120,8 @@ class InstanceControllerTest {
         this.existingInstance.setVersion("1.0.0");
         this.existingInstance.setComment("No comment");
         this.existingInstance.setStatus(ServiceStatus.RELEASED);
+        this.existingInstance.setDesigns(Collections.emptyMap());
+        this.existingInstance.setSpecifications(Collections.emptyMap());
     }
 
     /**
@@ -357,7 +365,7 @@ class InstanceControllerTest {
         MvcResult mvcResult = this.mockMvc.perform(put("/api/instances/{id}", this.existingInstance.getId())
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(this.objectMapper.writeValueAsString(this.instanceDomainToDtoMapper.convertTo(this.existingInstance, InstanceDto.class))))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andReturn();
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Maritime Connectivity Platform Consortium
+ * Copyright (c) 2025 Maritime Connectivity Platform Consortium
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 import net.maritimeconnectivity.serviceregistry.models.domain.UserToken;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.function.Function;
 
 /**
@@ -71,8 +73,14 @@ public class ClientJwtTokenUtility {
         // Strips out the signature, so that we can read the payload.
         // As a result, we shouldn't trust this token unless we are sure it ca
         // be validated by <auth server>.
-        final String noSignatureToken = token.replaceFirst("[^\\.]*$", "");
-        return (Claims) Jwts.parser().parse(noSignatureToken).getBody();
+        final String unsecuredHeader = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"alg\":\"none\"}".getBytes(StandardCharsets.UTF_8));
+        final String unsecuredToken = unsecuredHeader + "." +  token.split("\\.")[1] + ".";
+        return Jwts.parser()
+                .unsecured()
+                .build()
+                .parseUnsecuredClaims(unsecuredToken)
+                .getPayload();
     }
 
     /**
