@@ -246,8 +246,14 @@ public class Gmsp {
         searchObjectResults.forEach(r -> r.setSourceMSRs(new String[]{ownMrn}));
         log.debug("Found {} search results for local database", searchObjectResults.size());
 
+        // Hack: Don't use the configured truststore as it will result in TLS certs
+        // from the system truststore being rejected
+        final SecomConfigProperties tmpSecomConfig = secomConfigProperties;
+        tmpSecomConfig.setTruststore(null);
+        tmpSecomConfig.setTruststorePassword(null);
+
         try {
-            uploadResults(URI.create(dto.getEndpoint()).toURL(), secomConfigProperties,
+            uploadResults(URI.create(dto.getEndpoint()).toURL(), tmpSecomConfig,
                     searchObjectResults);
         } catch (WebClientResponseException e) {
             log.error("Error uploading results via SECOM Upload interface, CODE:", e);
